@@ -1,0 +1,374 @@
+# =============================================================================
+# Prometheus Configuration for SIEM OpenSource PyMES
+# =============================================================================
+# This configuration file defines monitoring targets, scraping intervals,
+# alerting rules, and service discovery for the SIEM infrastructure.
+# =============================================================================
+
+global:
+  # How frequently to scrape targets by default
+  scrape_interval: 15s
+  
+  # How long until a scrape request times out
+  scrape_timeout: 10s
+  
+  # How frequently to evaluate rules
+  evaluation_interval: 15s
+  
+  # External labels to add to any time series or alerts
+  external_labels:
+    cluster: 'siem-pymes'
+    environment: 'production'
+    datacenter: 'local'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+      scheme: http
+      timeout: 10s
+      api_version: v2
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - "/etc/prometheus/rules/*.yml"
+  - "/etc/prometheus/alerts/*.yml"
+
+# Scrape configuration
+scrape_configs:
+  # =============================================================================
+  # PROMETHEUS SELF-MONITORING
+  # =============================================================================
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scheme: http
+
+  # =============================================================================
+  # NODE EXPORTER - SYSTEM METRICS
+  # =============================================================================
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scheme: http
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '(.*)'
+        replacement: 'siem-host'
+
+  # =============================================================================
+  # ELASTICSEARCH MONITORING
+  # =============================================================================
+  - job_name: 'elasticsearch'
+    static_configs:
+      - targets: ['elasticsearch:9200']
+    scrape_interval: 30s
+    metrics_path: /_prometheus/metrics
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+    basic_auth:
+      username: 'elastic'
+      password_file: '/etc/prometheus/secrets/elastic_password'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'elasticsearch'
+
+  # Elasticsearch Exporter (if using separate exporter)
+  - job_name: 'elasticsearch-exporter'
+    static_configs:
+      - targets: ['elasticsearch-exporter:9114']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    scheme: http
+
+  # =============================================================================
+  # KIBANA MONITORING
+  # =============================================================================
+  - job_name: 'kibana'
+    static_configs:
+      - targets: ['kibana:5601']
+    scrape_interval: 30s
+    metrics_path: /api/status
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'kibana'
+
+  # =============================================================================
+  # LOGSTASH MONITORING
+  # =============================================================================
+  - job_name: 'logstash'
+    static_configs:
+      - targets: ['logstash:9600']
+    scrape_interval: 30s
+    metrics_path: /_node/stats
+    scheme: http
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'logstash'
+
+  # =============================================================================
+  # WAZUH MONITORING
+  # =============================================================================
+  - job_name: 'wazuh-manager'
+    static_configs:
+      - targets: ['wazuh-manager:55000']
+    scrape_interval: 30s
+    metrics_path: /stats
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+    basic_auth:
+      username: 'wazuh'
+      password_file: '/etc/prometheus/secrets/wazuh_password'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'wazuh-manager'
+
+  - job_name: 'wazuh-indexer'
+    static_configs:
+      - targets: ['wazuh-indexer:9200']
+    scrape_interval: 30s
+    metrics_path: /_prometheus/metrics
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+    basic_auth:
+      username: 'admin'
+      password_file: '/etc/prometheus/secrets/wazuh_indexer_password'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'wazuh-indexer'
+
+  # =============================================================================
+  # SURICATA MONITORING
+  # =============================================================================
+  - job_name: 'suricata'
+    static_configs:
+      - targets: ['suricata:8080']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    scheme: http
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'suricata'
+
+  # =============================================================================
+  # GRAFANA MONITORING
+  # =============================================================================
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+    basic_auth:
+      username: 'admin'
+      password_file: '/etc/prometheus/secrets/grafana_password'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'grafana'
+
+  # =============================================================================
+  # DATABASE MONITORING
+  # =============================================================================
+  - job_name: 'postgresql'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    scheme: http
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'postgresql'
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    scheme: http
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'redis'
+
+  # =============================================================================
+  # NGINX MONITORING
+  # =============================================================================
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx:9113']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    scheme: http
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'nginx'
+
+  # =============================================================================
+  # DOCKER MONITORING
+  # =============================================================================
+  - job_name: 'docker'
+    static_configs:
+      - targets: ['docker-exporter:9323']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    scheme: http
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'docker'
+
+  # =============================================================================
+  # CADVISOR - CONTAINER MONITORING
+  # =============================================================================
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    scheme: http
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'cadvisor'
+
+  # =============================================================================
+  # BLACKBOX EXPORTER - ENDPOINT MONITORING
+  # =============================================================================
+  - job_name: 'blackbox-http'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - https://localhost:5601  # Kibana
+        - https://localhost:443   # Wazuh Dashboard
+        - https://localhost:3000  # Grafana
+        - https://localhost:9200  # Elasticsearch
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  - job_name: 'blackbox-tcp'
+    metrics_path: /probe
+    params:
+      module: [tcp_connect]
+    static_configs:
+      - targets:
+        - localhost:1514  # Wazuh Agent
+        - localhost:1515  # Wazuh Enrollment
+        - localhost:514   # Syslog
+        - localhost:5044  # Beats
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # =============================================================================
+  # CUSTOM APPLICATION MONITORING
+  # =============================================================================
+  - job_name: 'elastalert'
+    static_configs:
+      - targets: ['elastalert:3030']
+    scrape_interval: 60s
+    metrics_path: /metrics
+    scheme: http
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'elastalert'
+
+  # =============================================================================
+  # SIEM CUSTOM METRICS
+  # =============================================================================
+  - job_name: 'siem-metrics'
+    static_configs:
+      - targets: ['siem-metrics:8080']
+    scrape_interval: 60s
+    metrics_path: /metrics
+    scheme: http
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'siem-custom'
+
+# =============================================================================
+# REMOTE WRITE CONFIGURATION (for long-term storage)
+# =============================================================================
+# remote_write:
+#   - url: "https://prometheus-remote-storage:9201/api/v1/write"
+#     basic_auth:
+#       username: "prometheus"
+#       password_file: "/etc/prometheus/secrets/remote_write_password"
+#     queue_config:
+#       max_samples_per_send: 1000
+#       max_shards: 200
+#       capacity: 2500
+
+# =============================================================================
+# REMOTE READ CONFIGURATION
+# =============================================================================
+# remote_read:
+#   - url: "https://prometheus-remote-storage:9201/api/v1/read"
+#     basic_auth:
+#       username: "prometheus"
+#       password_file: "/etc/prometheus/secrets/remote_read_password"
+
+# =============================================================================
+# STORAGE CONFIGURATION
+# =============================================================================
+# storage:
+#   tsdb:
+#     retention.time: 30d
+#     retention.size: 50GB
+#     wal-compression: true
+
+# =============================================================================
+# TRACING CONFIGURATION
+# =============================================================================
+# tracing:
+#   endpoint: "jaeger:14268/api/traces"
+#   insecure: true
+#   timeout: 5s
+
+# =============================================================================
+# FEATURE FLAGS
+# =============================================================================
+# feature_flags:
+#   - "promql-at-modifier"
+#   - "promql-negative-offset"
+#   - "remote-write-receiver"
+
+# =============================================================================
+# END OF CONFIGURATION
+# =============================================================================

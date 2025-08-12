@@ -1,0 +1,373 @@
+# =============================================================================
+# Wazuh Dashboard Configuration for SIEM OpenSource PyMES
+# =============================================================================
+# This configuration file sets up Wazuh Dashboard (OpenSearch Dashboards)
+# for security visualization and management in a SIEM environment
+# =============================================================================
+
+# =============================================================================
+# SERVER CONFIGURATION
+# =============================================================================
+server.name: "wazuh-dashboard"
+server.host: "0.0.0.0"
+server.port: 5601
+server.basePath: ""
+server.rewriteBasePath: false
+
+# SSL Configuration
+server.ssl.enabled: true
+server.ssl.certificate: "/usr/share/wazuh-dashboard/certs/wazuh-dashboard.pem"
+server.ssl.key: "/usr/share/wazuh-dashboard/certs/wazuh-dashboard-key.pem"
+server.ssl.certificateAuthorities: ["/usr/share/wazuh-dashboard/certs/root-ca.pem"]
+
+# Server settings
+server.maxPayload: 1048576
+server.keepaliveTimeout: 120000
+server.socketTimeout: 120000
+server.compression.enabled: true
+
+# =============================================================================
+# OPENSEARCH CONNECTION
+# =============================================================================
+opensearch.hosts: ["https://wazuh-indexer:9200"]
+opensearch.username: "kibanaserver"
+opensearch.password: "${WAZUH_DASHBOARD_PASSWORD}"
+
+# SSL settings for OpenSearch connection
+opensearch.ssl.certificateAuthorities: ["/usr/share/wazuh-dashboard/certs/root-ca.pem"]
+opensearch.ssl.verificationMode: certificate
+
+# Connection settings
+opensearch.pingTimeout: 1500
+opensearch.requestTimeout: 30000
+opensearch.shardTimeout: 30000
+opensearch.sniffOnStart: false
+opensearch.sniffInterval: false
+opensearch.sniffOnConnectionFault: false
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+# Encryption keys (should be 32 characters)
+opensearch_security.encryptionKey: "${WAZUH_DASHBOARD_ENCRYPTION_KEY}"
+opensearch_security.session.ttl: 86400000
+opensearch_security.session.keepalive: true
+
+# Security settings
+opensearch_security.auth.type: "basicauth"
+opensearch_security.auth.multiple_auth_enabled: false
+
+# Cookie settings
+opensearch_security.cookie.secure: true
+opensearch_security.cookie.isSameSite: "Strict"
+opensearch_security.cookie.password: "${WAZUH_DASHBOARD_COOKIE_PASSWORD}"
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+logging.appenders:
+  file:
+    type: file
+    fileName: /var/log/wazuh-dashboard/wazuh-dashboard.log
+    layout:
+      type: json
+  console:
+    type: console
+    layout:
+      type: pattern
+      pattern: "[%date][%level][%logger] %message"
+
+logging.loggers:
+  - name: root
+    appenders: [file, console]
+    level: info
+  - name: opensearch
+    level: warn
+  - name: opensearch.query
+    level: warn
+  - name: plugins.security
+    level: info
+
+logging.root.level: info
+
+# =============================================================================
+# WAZUH PLUGIN CONFIGURATION
+# =============================================================================
+# Wazuh plugin settings
+wazuh.shards: 1
+wazuh.replicas: 0
+wazuh.refresh: "30s"
+
+# Monitoring settings
+wazuh.monitoring.enabled: true
+wazuh.monitoring.frequency: 900
+wazuh.monitoring.shards: 1
+wazuh.monitoring.replicas: 0
+wazuh.monitoring.creation: "d"
+wazuh.monitoring.pattern: "wazuh-monitoring-*"
+
+# Statistics settings
+wazuh.monitoring.creation: "d"
+wazuh.monitoring.pattern: "wazuh-monitoring-*"
+wazuh.monitoring.template_name: "wazuh-agent"
+
+# Sample data
+wazuh.sample.prefix: "wazuh-alerts-4.x-sample"
+wazuh.sample.template.name: "wazuh"
+wazuh.sample.template.pattern: "wazuh-alerts-*"
+
+# =============================================================================
+# DASHBOARD FEATURES
+# =============================================================================
+# Enable/disable features
+vis_type_vega.enabled: true
+vis_type_timeline.enabled: true
+vis_type_markdown.enabled: true
+vis_type_metric.enabled: true
+vis_type_table.enabled: true
+vis_type_tagcloud.enabled: true
+vis_type_timelion.enabled: true
+
+# Dashboard settings
+dashboard.allowByValueEmbeddables: true
+visualize.enableLabs: true
+
+# =============================================================================
+# DATA CONFIGURATION
+# =============================================================================
+# Data views (index patterns)
+data.search.aggs.shardDelay.enabled: true
+data.search.sessions.enabled: true
+data.search.usageTelemetry.enabled: false
+
+# Default index patterns
+opensearch_dashboards.defaultAppId: "wazuh"
+opensearch_dashboards.index: ".kibana"
+
+# =============================================================================
+# MAPS CONFIGURATION
+# =============================================================================
+# Maps settings
+map.includeElasticMapsService: false
+map.tilemap.url: "https://tiles.maps.elastic.co/v2/default/{z}/{x}/{y}.png?elastic_tile_service_tos=agree&my_app_name=wazuh"
+map.tilemap.options.attribution: "© OpenStreetMap contributors"
+
+# Regional map settings
+regionmap.includeElasticMapsService: false
+regionmap.layers: []
+
+# =============================================================================
+# PERFORMANCE OPTIMIZATION
+# =============================================================================
+# Memory and performance settings
+data.search.timeout: 600000
+data.search.sessions.defaultExpiration: "7d"
+data.search.sessions.management.maxSessions: 10000
+data.search.sessions.management.refreshInterval: "1m"
+data.search.sessions.management.refreshTimeout: "1m"
+
+# OpenSearch query settings
+opensearch.maxConcurrentShardRequests: 5
+
+# =============================================================================
+# SAVED OBJECTS
+# =============================================================================
+savedObjects.maxImportPayloadBytes: 26214400
+savedObjects.maxImportExportSize: 10000
+
+# =============================================================================
+# TELEMETRY
+# =============================================================================
+telemetry.enabled: false
+telemetry.allowChangingOptInStatus: false
+telemetry.optIn: false
+
+# Usage collection
+usageCollection.uiCounters.enabled: false
+
+# =============================================================================
+# NEWSFEED
+# =============================================================================
+newsfeed.enabled: false
+
+# =============================================================================
+# MONITORING
+# =============================================================================
+monitoring.enabled: false
+monitoring.opensearch.hosts: ["https://wazuh-indexer:9200"]
+monitoring.opensearch.username: "kibanaserver"
+monitoring.opensearch.password: "${WAZUH_DASHBOARD_PASSWORD}"
+monitoring.opensearch.ssl.certificateAuthorities: ["/usr/share/wazuh-dashboard/certs/root-ca.pem"]
+monitoring.opensearch.ssl.verificationMode: certificate
+
+# =============================================================================
+# ADVANCED SETTINGS
+# =============================================================================
+# Advanced dashboard settings
+server.compression.enabled: true
+server.compression.referrerWhitelist: ["localhost:5601", "wazuh-dashboard:5601"]
+
+# CORS settings
+server.cors.enabled: false
+server.cors.allowCredentials: false
+server.cors.allowOrigin: ["*"]
+
+# Custom headers
+server.customResponseHeaders:
+  "X-Frame-Options": "DENY"
+  "X-Content-Type-Options": "nosniff"
+  "X-XSS-Protection": "1; mode=block"
+  "Strict-Transport-Security": "max-age=31536000; includeSubDomains"
+  "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none';"
+
+# =============================================================================
+# INTERNATIONALIZATION
+# =============================================================================
+i18n.locale: "en"
+
+# =============================================================================
+# PLUGIN CONFIGURATION
+# =============================================================================
+# Plugin settings
+plugins.scanDirs: ["/usr/share/wazuh-dashboard/plugins"]
+plugins.initialize: true
+
+# Wazuh plugin specific settings
+wazuh_core.configuration.encryption_key: "${WAZUH_DASHBOARD_ENCRYPTION_KEY}"
+wazuh_core.configuration.max_buckets: 200000
+wazuh_core.configuration.timeout: 20000
+
+# =============================================================================
+# ALERTING CONFIGURATION
+# =============================================================================
+# OpenSearch Alerting integration
+alerting.enabled: true
+alerting.destination.allow_list: ["chime", "slack", "custom_webhook", "email"]
+
+# =============================================================================
+# REPORTING CONFIGURATION
+# =============================================================================
+# Reporting settings
+reports.enabled: true
+reports.capture.browser.chromium.disableSandbox: true
+reports.capture.browser.chromium.proxy.enabled: false
+reports.capture.maxAttempts: 3
+reports.queue.timeout: 120000
+
+# =============================================================================
+# SECURITY ANALYTICS
+# =============================================================================
+# Security Analytics plugin
+security_analytics.enabled: true
+
+# =============================================================================
+# ANOMALY DETECTION
+# =============================================================================
+# Anomaly Detection plugin
+anomaly_detection.enabled: true
+
+# =============================================================================
+# OBSERVABILITY
+# =============================================================================
+# Observability plugin
+observability.enabled: true
+
+# =============================================================================
+# NOTIFICATIONS
+# =============================================================================
+# Notifications plugin
+notifications.enabled: true
+
+# =============================================================================
+# INDEX MANAGEMENT
+# =============================================================================
+# Index Management plugin
+index_management.enabled: true
+
+# =============================================================================
+# CUSTOM WAZUH SETTINGS
+# =============================================================================
+# Custom Wazuh dashboard settings
+wazuh.check_updates: true
+wazuh.logo.app: ""
+wazuh.logo.sidebar: ""
+wazuh.logo.healthcheck: ""
+wazuh.logo.reports: ""
+
+# API configuration
+wazuh.api.timeout: 20000
+wazuh.api.selector: true
+
+# Vulnerability detector
+wazuh.vulnerabilities.pattern: "wazuh-alerts-*"
+
+# Configuration assessment
+wazuh.configuration.ui_api_editable: false
+
+# =============================================================================
+# DEVELOPMENT SETTINGS
+# =============================================================================
+# Development mode settings (set to false in production)
+env.name: "production"
+optimize.enabled: true
+
+# =============================================================================
+# MEMORY SETTINGS
+# =============================================================================
+# Node.js memory settings
+node.options:
+  - "--max-old-space-size=4096"
+
+# =============================================================================
+# CUSTOM SIEM SETTINGS
+# =============================================================================
+# Custom settings for SIEM workloads
+siem.dashboard.refresh_interval: "30s"
+siem.dashboard.time_filter: "24h"
+siem.dashboard.max_buckets: 100000
+
+# Default time range
+siem.time.from: "now-24h"
+siem.time.to: "now"
+
+# Search settings
+siem.search.max_concurrent_searches: 10
+siem.search.timeout: 30000
+
+# =============================================================================
+# WORKSPACE SETTINGS
+# =============================================================================
+# Workspace configuration
+workspace.enabled: false
+
+# =============================================================================
+# QUERY ENHANCEMENT
+# =============================================================================
+# Query enhancement settings
+query_enhancements.enabled: true
+
+# =============================================================================
+# CONTENT MANAGEMENT
+# =============================================================================
+# Content management settings
+content_management.enabled: true
+
+# =============================================================================
+# CUSTOM BRANDING
+# =============================================================================
+# Custom branding for SIEM
+opensearch_dashboards.branding:
+  logo:
+    defaultUrl: "/ui/logos/wazuh.svg"
+    darkModeUrl: "/ui/logos/wazuh_dark.svg"
+  mark:
+    defaultUrl: "/ui/logos/wazuh_mark.svg"
+    darkModeUrl: "/ui/logos/wazuh_mark_dark.svg"
+  title: "SIEM PyMES - Wazuh Dashboard"
+  favicon:
+    defaultUrl: "/ui/favicons/favicon.ico"
+  applicationTitle: "SIEM OpenSource PyMES"
+
+# =============================================================================
+# END OF CONFIGURATION
+# =============================================================================

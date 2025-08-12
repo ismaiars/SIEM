@@ -1,0 +1,198 @@
+{
+  "title": "SIEM-OpenSource-PyMES - Generador de repositorio",
+  "language": "es",
+  "purpose": "Generar un repositorio Git completo, profesional y listo para producción que implemente un SIEM open-source orientado a pequeñas y medianas empresas. El repo debe incluir infraestructura (IaC), despliegue con Docker/Kubernetes, configuraciones, dashboards, reglas de correlación y detección, documentación técnica, playbooks de respuesta, pruebas y pipeline CI/CD.",
+  "high_level_goals": [
+    "Entrega de una solución SIEM funcional (Wazuh/Elastic/Kibana o SecurityOnion stack) desplegable en entornos cloud y on-premise.",
+    "Buenas prácticas de seguridad, logging y gestión de secretos.",
+    "Documentación y plantillas para operación (runbooks, playbooks, onboarding).",
+    "Repositorio profesional listo para presentar en portafolio y/o vender como servicio administrado."
+  ],
+  "deliverables": {
+    "repo_structure": "Estructura de carpetas con descripción",
+    "iac": "Terraform o Pulumi para crear infra en AWS (VPC, subnets, EC2/EKS, RDS si aplica).",
+    "container": "docker-compose.yml y manifests de Kubernetes (Helm charts opcional).",
+    "config": "Archivos de configuración para Wazuh/Elastic/Kibana/Beats/Suricata/OSSEC/CrowdSec según stack elegido.",
+    "dashboards": "Dashboards de Kibana/Grafana exportables (JSON) listos para importar.",
+    "detections": "Reglas de correlación personalizadas y ejemplos (Sigma/Elastalert/Wazuh rules).",
+    "alerting": "Integración con Slack/Telegram/Email/Teams y playbooks de respuesta.",
+    "testing": "Pruebas automatizadas (smoke tests), scripts para generación de logs de prueba y escenarios de ataque controlados.",
+    "docs": "README, arquitectura, manual de despliegue, runbooks, política de retención y backup, SLA sugerido.",
+    "ci_cd": "GitHub Actions o GitLab CI para linting, tests, builds y despliegue a staging.",
+    "templates": "Issue/PR templates, commit conventions, changelog, LICENSE (MIT/Apache-2.0)."
+  },
+  "target_audience": "Ingeniero de seguridad Blue Team, administradores de sistemas en PyMEs, consultores de servicios gestionados (MSSP).",
+  "non_goals": [
+    "No incluir herramientas comerciales propietarias (ej: Splunk Enterprise).",
+    "No realizar intrusión o actividad ilegal; las pruebas deben ser en entornos controlados."
+  ],
+  "recommended_stack": {
+    "core_siem_options": ["Wazuh + Elastic Stack (Elasticsearch, Kibana, Logstash/Beats)", "SecurityOnion (Elastic, Suricata, Zeek)"],
+    "optional_components": ["Filebeat/Winlogbeat/Packetbeat", "Suricata (network IDS)", "Zeek (network analysis)", "Grafana (si se desea)", "CrowdSec (enrichment/auto-block)"],
+    "infrastructure": ["Docker Compose para PoC", "Kubernetes (EKS/GKE/AKS) para producción", "Terraform para IaC en AWS/GCP/Azure"],
+    "os_and_endpoints": ["Agentes Wazuh para Windows/Linux/macOS", "Hardened Linux server (Ubuntu LTS / Rocky/Alma)"],
+    "languages_scripts": ["Python (scripts, ingest pipelines, playbooks)", "Bash", "YAML para manifests"],
+    "automation": ["Ansible para configuración inicial/hardening", "Terraform para provisioning", "Helm charts para k8s"],
+    "storage": ["Elasticsearch (tiered nodes)", "S3/Blob storage para backups", "Postgres (opcional para metadata)"]
+  },
+  "architecture_summary": {
+    "description": "Arquitectura modular con separación clara de capas: ingest (beats / agents), pipeline (Logstash/Filebeat), almacenamiento (Elasticsearch), análisis (Kibana/Grafana), detección (Wazuh rules/ElastAlert/Sigma), orquestación y respuesta (Playbooks + webhook integraciones).",
+    "network_segmentation": "VPC con subnets públicas/privadas, bastion host para administración, IDS/Firewall perimetral, reglas de seguridad restrictivas.",
+    "high_availability": "Cluster Elasticsearch con al menos 3 master-eligible nodes y replicas, uso de StatefulSets en Kubernetes con PersistentVolumes, backups regulares a S3.",
+    "scalability": "Auto-scaling groups (o HPA en k8s) para agentes y procesadores, separación de ingest y query nodes."
+  },
+  "repo_root_structure": {
+    "README.md": "Resumen, badges, quickstart, links a docs.",
+    "LICENSE": "MIT o Apache-2.0.",
+    "docs/": "Arquitectura, deployment-guide.md, runbooks/, playbooks/, compliance.md",
+    "infra/": "terraform/ + modules/ + variables.tf.example",
+    "k8s/": "manifests/ helm-charts/ values.yaml.example",
+    "docker/": "docker-compose.yml + dockerfiles/",
+    "wazuh/": "wazuh-configs/ rules/ decoders/ osquery-packs/",
+    "elastic/": "kibana-dashboards/ mappings/ ingest-pipelines/",
+    "scripts/": "bootstrapping scripts, log-generator, test-scenarios",
+    "playbooks/": "incident_playbooks/ ransomware.md / phishing.md / lateral_movement.md",
+    "tests/": "integration/ smoke/ e2e/",
+    ".github/": "workflows/ ISSUE_TEMPLATE.md PULL_REQUEST_TEMPLATE.md",
+    "CONTRIBUTING.md": "Guía de contribución y estilo",
+    "SECURITY.md": "Política, reporte de vulnerabilidades",
+    "ops/": "monitoring/ backups/ retention_policy.md"
+  },
+  "detailed_requirements": {
+    "hardware_minimum": "2 vCPU, 4GB RAM (dev), producción: 3x 8vCPU + 32GB RAM para Elasticsearch nodes según tamaño de log ingestion (ajustar).",
+    "storage": "SSD NVMe recomendados. Retención por defecto 30 días (configurable). Usar snapshots automáticos a S3 cada 24h.",
+    "network": "TLS en toda la comunicación (letsencrypt/ACM), firewall restricciones, uso de VPN o bastion para administración.",
+    "secrets_management": "Vault / AWS Secrets Manager / SOPS para claves y credenciales, no guardar secrets en repo.",
+    "backup_and_recovery": "Snapshots automáticos de Elasticsearch cada 6-24h, playbook de recuperación documentado."
+  },
+  "security_best_practices": [
+    "Hardening OS (CIS Benchmarks) - incluir playbook Ansible con tareas de hardening.",
+    "TLS everywhere (mTLS entre agentes y servidor) y certificados rotables automáticos.",
+    "Autenticación y RBAC en Kibana/Elastic (no usar cuentas por defecto).",
+    "Registro y auditoría de accesos administrativos (auditd).",
+    "Monitor integrity (AIDE/OSSEC checks), file integrity monitoring (FIM).",
+    "Rotación de credenciales y auditoría de secretos.",
+    "Escaneo de imágenes contenedorizadas (Trivy/Clair) antes del deploy.",
+    "SAST/DAST en pipeline (Bandit, eslint, etc.).",
+    "Limitación de blast radius: least privilege en IAM y roles k8s.",
+    "Política de retención y anonimización/PII handling (compliance)."
+  ],
+  "logging_and_schema": {
+    "log_standard": "Usar ECS (Elastic Common Schema) como estándar para eventos.",
+    "fields_must_include": ["@timestamp", "host.name", "agent.name", "event.module", "event.action", "user.name", "source.ip", "destination.ip", "process.name", "file.hash.sha256"],
+    "indexing_strategy": "Daily indices con rollover, ILM (index lifecycle management) configurado para hot-warm-cold phases.",
+    "sample_ingest_pipeline": "Filebeat -> Ingest pipeline: grok -> date -> geoip -> ECS mapping"
+  },
+  "detections_and_rules_examples": [
+    {
+      "id": "R001",
+      "title": "Múltiples intentos de login fallidos desde una IP",
+      "description": "Detectar IPs con > 10 fallos en 5 minutos en sistemas Windows/Linux",
+      "sigma_example": "selection:\n  EventID: 4625\n  FailureReason: '%%'\ncondition: selection | count() by src_ip > 10 within 5m",
+      "action": "Alerta alta, bloquear IP en firewall/Cloud firewall y crear ticket en sistema de incidentes."
+    },
+    {
+      "id": "R002",
+      "title": "Ejecución sospechosa de PowerShell con Base64",
+      "description": "Detectar uso de PowerShell con -EncodedCommand o cadenas Base64 largas",
+      "rule_logic": "process.name: powershell.exe AND process.command_line: ('-EncodedCommand' or 'FromBase64String')",
+      "action": "Alerta crítica y aislamiento de host."
+    },
+    {
+      "id": "R003",
+      "title": "Conexión inusual a puerto RDP desde IP externa",
+      "description": "Accesos RDP desde nuevas geografías o horas inusuales",
+      "action": "Correlacionar con autenticación y geolocation. Escalar a investigación."
+    }
+  ],
+  "dashboards_examples": [
+    "Overview: ingest rate, events per second, error rate, disk usage",
+    "Security: top alert types, top source IPs, top users with failed logins",
+    "Endpoint: CPU/RAM, suspicious processes, recent file changes",
+    "Network: Suricata alerts, top ports, geoip map of attackers"
+  ],
+  "alerting_and_integrations": {
+    "channels": ["Slack", "Telegram", "Microsoft Teams", "PagerDuty", "Email", "Webhook hacia ticketing (Jira/ServiceNow)"],
+    "rate_limiting": "Evitar alert storms con deduplication y suppression rules.",
+    "ticketing": "Integra con Jira/GitHub issues para trazabilidad."
+  },
+  "incident_response_playbooks": {
+    "format": "Markdown con pasos técnicos y ejecutivos",
+    "includes": [
+      "Objetivo y alcance",
+      "Severidad y clasificación",
+      "Pasos de contención",
+      "Pasos de erradicación",
+      "Recuperación",
+      "Evidencias a recolectar (hashes, dumps)",
+      "Comunicación y escalamiento",
+      "Checklist post-mortem"
+    ],
+    "sample_playbooks": ["ransomware.md", "phishing_compromise.md", "lateral_movement.md"]
+  },
+  "testing_and_validation": {
+    "log_generation": "script log-generator.py con escenarios (failed logins, malware indicators, suspicious PowerShell).",
+    "integration_tests": "Tests que validan ingest pipeline y dashboards (usar pytest + elasticmock o entorno test con docker-compose).",
+    "red_team_simulation": "Procedimiento controlado para simular ataques (consentimiento y ambiente aislado).",
+    "continuous_monitoring_tests": "Synthetics que envían eventos y validan que reglas levantan alertas en CI."
+  },
+  "ci_cd_and_devops": {
+    "pipeline_examples": "GitHub Actions: lint -> tests -> build images -> push to registry -> deploy to staging",
+    "security_checks": ["image-scan (Trivy)", "terraform fmt/validate", "kubeval for manifests"],
+    "deploy_strategy": "Blue/Green o Canary para minimizar impacto",
+    "release_management": "SemVer v1.0.0, changelog generation via conventional commits"
+  },
+  "git_and_contribution_practices": {
+    "branching": "main (prod), develop (integration), feature/*",
+    "commit_convention": "Conventional Commits (feat/, fix/, docs/, chore/). Ej: feat(siem): add initial terraform module for vpc",
+    "pull_request": "PR template con checklist (lint ok, tests ok, docs updated, secret leak scan).",
+    "issue_templates": ["bug_report.md", "feature_request.md", "security_report.md"],
+    "code_review": "2 approvers mínimo, run CI y revisar cambios de seguridad"
+  },
+  "documentation_required": {
+    "README_quickstart": "Instalación rápida con docker-compose y pasos para enviar logs",
+    "DEPLOYMENT.md": "Guía completa: Terraform vars, how to scale, HA notes",
+    "OPERATIONS.md": "Runbooks, backup/restore, maintenance windows, escalation contacts",
+    "SECURITY.md": "Reporting, CVE handling, disclosure policy",
+    "ARCHITECTURE.md": "Diagrama ASCII + enlaces a draw.io o mermaid diagrams"
+  },
+  "legal_and_compliance_considerations": [
+    "Asegurar cumplimiento de leyes locales sobre recolección de datos (p.ej. privacidad en logs con PII).",
+    "Anotar limitaciones legales del honeypot (si se integra).",
+    "Agregar cláusula de términos de uso si se ofrece como servicio administrado."
+  ],
+  "milestones_and_timeline": [
+    { "m1": "PoC local con docker-compose (1-2 semanas)" },
+    { "m2": "Despliegue básico en cloud con Terraform + single node ES (2 semanas)" },
+    { "m3": "Agregar agentes en endpoints y reglas básicas (2 semanas)" },
+    { "m4": "Dashboards y playbooks + tests (2 semanas)" },
+    { "m5": "Hardening, HA, CI/CD y documentación completa (3 semanas)" }
+  ],
+  "qa_checks_before_release": [
+    "No secrets en repo (scanned with git-secrets / trufflehog)",
+    "All configs templatized with example variables (.example files)",
+    "Automated backups working and recovery tested",
+    "RBAC and TLS configured",
+    "SLA / RTO documented"
+  ],
+  "examples_to_generate_in_repo": {
+    "README_skeleton": true,
+    "terraform_module_vpc": true,
+    "docker_compose": true,
+    "k8s_manifests": true,
+    "wazuh_agent_install_script": true,
+    "sample_rule_R001_R002": true,
+    "kibana_dashboard_json": true,
+    "log_generator_script": true,
+    "playbooks_ransomware_phishing": true,
+    "github_actions_ci": true
+  },
+  "instructions_for_the_AIGENERATOR": {
+    "tone": "Profesional y técnico, en español claro. Usar términos precisos.",
+    "output_format": "Generar un repositorio listo para clonar. Crear archivos y carpetas mencionadas. Incluir variables de ejemplo para secrets (.env.example). NO incluir secretos reales.",
+    "code_quality_requirements": "Proporcionar código bien comentado, con linters configurados, y tests mínimos para cada script.",
+    "deliver_response": "Indicar comandos para levantar PoC (docker-compose up --build), y pasos para desplegar infra con Terraform (terraform init/plan/apply usando variables de ejemplo).",
+    "limit": "Si la respuesta es demasiado larga, crear un ZIP descargable del repo y proporcionar la estructura + enlaces."
+  },
+  "final_notes": "Incluye además una sección 'Cómo presentar en portafolio' con pasos para crear una demo pública (subdominio con acceso restringido), una demo video de 3-5 minutos mostrando dashboards y detecciones reales, y ejemplos de métricas que agregarían impacto en entrevistas (ingest rate, MTTR antes/después, número de detecciones bloqueadas)."
+}

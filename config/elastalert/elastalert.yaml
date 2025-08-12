@@ -1,0 +1,458 @@
+# =============================================================================
+# ElastAlert Configuration for SIEM OpenSource PyMES
+# =============================================================================
+# This configuration file sets up ElastAlert for automated alerting
+# and notification based on Elasticsearch data patterns
+# =============================================================================
+
+# This is the folder that contains the rule yaml files
+# Any .yaml file will be loaded as a rule
+rules_folder: /opt/elastalert/rules
+
+# How often ElastAlert will query Elasticsearch
+# The unit can be anything from weeks to seconds
+run_every:
+  minutes: 1
+
+# ElastAlert will buffer results from the most recent
+# period of time, in case some log sources are not in real time
+buffer_time:
+  minutes: 15
+
+# The Elasticsearch hostname for metadata writeback
+# Note that every rule can have its own Elasticsearch host
+es_host: elasticsearch
+
+# The Elasticsearch port
+es_port: 9200
+
+# The AWS region to use. Set this when using AWS ES
+# aws_region: us-east-1
+
+# The AWS profile to use. Use this if you are using an aws_access_key_id and aws_secret_access_key
+# profile: test
+
+# Optional URL prefix for Elasticsearch
+# es_url_prefix: elasticsearch
+
+# Connect with TLS to Elasticsearch
+use_ssl: True
+
+# Verify TLS certificates
+verify_certs: False
+
+# GET request with body is the default option for Elasticsearch.
+# If it fails for some reason, you can pass 'GET', 'POST' or 'source'.
+# See http://elasticsearch-py.readthedocs.io/en/master/connection.html?highlight=send_get_body_as#transport
+# for details
+send_get_body_as: GET
+
+# Option basic-auth username and password for Elasticsearch
+es_username: elastic
+es_password: changeme
+
+# Use SSL authentication with client certificates client_cert must be
+# a pem file containing both cert and key for client
+# ca_certs is a pem file containing the ca cert(s)
+# client_cert: /path/to/clientcert.pem
+# ca_certs: /path/to/cacert.pem
+
+# The index on es_host which is used for metadata storage
+# This can be a unmapped index, but it is recommended that you run
+# elastalert-create-index to set a mapping
+writeback_index: elastalert_status
+
+# If an alert fails for some reason, ElastAlert will retry
+# sending the alert until this time period elapses
+alert_time_limit:
+  days: 2
+
+# Custom logging configuration
+# If you want to setup your own logging configuration to log into
+# files as well or to Logstash and/or modify log levels, use
+# the configuration below and adjust to your needs.
+# Note: if you run ElastAlert with --verbose/--debug, the log level may
+# be overridden if you have configured the root logger here.
+logging:
+  version: 1
+  incremental: false
+  disable_existing_loggers: false
+  formatters:
+    logline:
+      format: '%(asctime)s %(levelname)+8s %(name)+20s %(message)s'
+    
+  handlers:
+    console:
+      class: logging.StreamHandler
+      formatter: logline
+      level: INFO
+      stream: ext://sys.stderr
+    
+    file:
+      class: logging.handlers.RotatingFileHandler
+      formatter: logline
+      level: INFO
+      filename: /opt/elastalert/logs/elastalert.log
+      maxBytes: 10485760
+      backupCount: 5
+
+  loggers:
+    elastalert:
+      level: INFO
+      handlers: [console, file]
+      propagate: false
+    
+    elasticsearch:
+      level: WARN
+      handlers: [console, file]
+      propagate: false
+    
+    elasticsearch.trace:
+      level: WARN
+      handlers: [console, file]
+      propagate: false
+    
+    '': # root logger
+      level: INFO
+      handlers: [console, file]
+      propagate: false
+
+# Set timezone for timestamps
+# timezone: UTC
+
+# SIEM Custom Settings
+siem:
+  # Default settings for SIEM rules
+  default_settings:
+    # Default time window for aggregation
+    timeframe:
+      minutes: 5
+    
+    # Default threshold for alerts
+    threshold: 10
+    
+    # Default fields to include in alerts
+    include_fields:
+      - '@timestamp'
+      - 'source.ip'
+      - 'destination.ip'
+      - 'event.action'
+      - 'event.category'
+      - 'event.dataset'
+      - 'event.module'
+      - 'user.name'
+      - 'host.name'
+      - 'process.name'
+      - 'file.path'
+      - 'url.domain'
+      - 'http.request.method'
+      - 'http.response.status_code'
+    
+    # Default alert format
+    alert_text: |
+      SIEM Alert: {0}
+      
+      Rule: {1}
+      Timestamp: {2}
+      Count: {3}
+      
+      Details:
+      {4}
+    
+    alert_text_args:
+      - rule.name
+      - rule.description
+      - '@timestamp'
+      - num_matches
+      - match_body
+
+# Performance tuning
+max_query_size: 10000
+max_aggregation: 10000
+scroll_keepalive: '30s'
+
+# Thread pool settings
+thread_pool_size: 5
+
+# Query delay to account for Elasticsearch indexing delay
+query_delay:
+  seconds: 30
+
+# Silence alerts for a period after they fire
+# This helps prevent alert spam
+realert:
+  minutes: 5
+
+# Global alert settings
+global_alert_settings:
+  # Slack integration
+  slack_webhook_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+  slack_channel_override: '#siem-alerts'
+  slack_username_override: 'ElastAlert SIEM'
+  slack_emoji_override: ':warning:'
+  
+  # Email settings
+  smtp_host: 'smtp.gmail.com'
+  smtp_port: 587
+  smtp_ssl: false
+  from_addr: 'siem-alerts@company.com'
+  email_reply_to: 'siem-admin@company.com'
+  
+  # PagerDuty settings
+  pagerduty_service_key: 'YOUR_PAGERDUTY_SERVICE_KEY'
+  
+  # Jira settings
+  jira_server: 'https://your-company.atlassian.net'
+  jira_project: 'SEC'
+  jira_issue_type: 'Bug'
+  jira_priority: 'High'
+  
+  # Teams settings
+  ms_teams_webhook_url: 'https://outlook.office.com/webhook/YOUR/TEAMS/WEBHOOK'
+  
+  # Custom webhook settings
+  http_post_url: 'https://your-siem-api.com/alerts'
+  http_post_headers:
+    'Content-Type': 'application/json'
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+
+# Index patterns for different log types
+index_patterns:
+  # Security logs
+  security: 'wazuh-alerts-*'
+  
+  # Network logs
+  network: 'suricata-*'
+  
+  # System logs
+  system: 'filebeat-*'
+  
+  # Application logs
+  application: 'logstash-*'
+  
+  # Web logs
+  web: 'nginx-*,apache-*'
+  
+  # Database logs
+  database: 'mysql-*,postgresql-*'
+  
+  # Cloud logs
+  cloud: 'aws-*,azure-*,gcp-*'
+
+# Rule categories for organization
+rule_categories:
+  - authentication
+  - authorization
+  - malware
+  - intrusion_detection
+  - data_exfiltration
+  - privilege_escalation
+  - lateral_movement
+  - persistence
+  - command_and_control
+  - impact
+  - reconnaissance
+  - resource_development
+  - initial_access
+  - execution
+  - defense_evasion
+  - credential_access
+  - discovery
+  - collection
+
+# Compliance frameworks
+compliance_frameworks:
+  pci_dss:
+    enabled: true
+    requirements:
+      - '10.2.1'
+      - '10.2.2'
+      - '10.2.3'
+      - '10.2.4'
+      - '10.2.5'
+      - '10.2.6'
+      - '10.2.7'
+  
+  gdpr:
+    enabled: true
+    articles:
+      - 'Article 32'
+      - 'Article 33'
+      - 'Article 34'
+  
+  hipaa:
+    enabled: true
+    safeguards:
+      - '164.308(a)(1)(ii)(D)'
+      - '164.308(a)(5)(ii)(C)'
+      - '164.312(a)(2)(i)'
+      - '164.312(b)'
+  
+  nist_800_53:
+    enabled: true
+    controls:
+      - 'AU-2'
+      - 'AU-3'
+      - 'AU-6'
+      - 'AU-12'
+      - 'SI-4'
+
+# Threat intelligence integration
+threat_intelligence:
+  enabled: true
+  sources:
+    - name: 'alienvault_otx'
+      url: 'https://otx.alienvault.com/api/v1/indicators/export'
+      api_key: 'YOUR_OTX_API_KEY'
+      update_interval: '1h'
+    
+    - name: 'virustotal'
+      url: 'https://www.virustotal.com/vtapi/v2/'
+      api_key: 'YOUR_VIRUSTOTAL_API_KEY'
+      update_interval: '1h'
+    
+    - name: 'misp'
+      url: 'https://your-misp-instance.com'
+      api_key: 'YOUR_MISP_API_KEY'
+      update_interval: '30m'
+
+# Machine learning settings
+machine_learning:
+  enabled: true
+  models:
+    - name: 'anomaly_detection'
+      type: 'isolation_forest'
+      features:
+        - 'source.bytes'
+        - 'destination.bytes'
+        - 'network.duration'
+        - 'event.duration'
+      threshold: 0.1
+    
+    - name: 'user_behavior'
+      type: 'one_class_svm'
+      features:
+        - 'user.login_count'
+        - 'user.failed_login_count'
+        - 'user.session_duration'
+      threshold: 0.05
+
+# Data retention settings
+data_retention:
+  # How long to keep alert metadata
+  alert_metadata: '90d'
+  
+  # How long to keep rule execution history
+  rule_history: '30d'
+  
+  # How long to keep silence records
+  silence_records: '7d'
+
+# Performance monitoring
+performance_monitoring:
+  enabled: true
+  metrics:
+    - rule_execution_time
+    - query_execution_time
+    - alert_processing_time
+    - elasticsearch_response_time
+  
+  # Send performance metrics to Elasticsearch
+  send_to_elasticsearch: true
+  performance_index: 'elastalert-performance'
+
+# High availability settings
+high_availability:
+  enabled: false
+  cluster_name: 'elastalert-cluster'
+  node_name: 'elastalert-node-1'
+  coordination_index: 'elastalert-coordination'
+  
+# Backup and recovery
+backup:
+  enabled: true
+  backup_index: 'elastalert-backup'
+  backup_interval: '1d'
+  retention_period: '30d'
+
+# Custom field mappings for different log sources
+field_mappings:
+  wazuh:
+    timestamp_field: '@timestamp'
+    source_ip_field: 'data.srcip'
+    destination_ip_field: 'data.dstip'
+    user_field: 'data.srcuser'
+    host_field: 'agent.name'
+  
+  suricata:
+    timestamp_field: 'timestamp'
+    source_ip_field: 'src_ip'
+    destination_ip_field: 'dest_ip'
+    alert_field: 'alert.signature'
+    severity_field: 'alert.severity'
+  
+  filebeat:
+    timestamp_field: '@timestamp'
+    host_field: 'host.name'
+    message_field: 'message'
+    log_level_field: 'log.level'
+
+# Alert enrichment
+alert_enrichment:
+  enabled: true
+  enrichers:
+    - name: 'geoip'
+      fields: ['source.ip', 'destination.ip']
+    
+    - name: 'threat_intel'
+      fields: ['source.ip', 'destination.ip', 'url.domain']
+    
+    - name: 'user_context'
+      fields: ['user.name']
+    
+    - name: 'asset_context'
+      fields: ['host.name', 'source.ip']
+
+# Custom alert actions
+custom_actions:
+  - name: 'create_ticket'
+    type: 'webhook'
+    url: 'https://your-ticketing-system.com/api/tickets'
+    method: 'POST'
+    headers:
+      'Content-Type': 'application/json'
+      'Authorization': 'Bearer YOUR_API_TOKEN'
+  
+  - name: 'block_ip'
+    type: 'webhook'
+    url: 'https://your-firewall-api.com/block'
+    method: 'POST'
+    headers:
+      'Content-Type': 'application/json'
+      'Authorization': 'Bearer YOUR_FIREWALL_TOKEN'
+  
+  - name: 'isolate_host'
+    type: 'webhook'
+    url: 'https://your-edr-system.com/isolate'
+    method: 'POST'
+    headers:
+      'Content-Type': 'application/json'
+      'Authorization': 'Bearer YOUR_EDR_TOKEN'
+
+# Rule testing and validation
+rule_testing:
+  enabled: true
+  test_data_index: 'elastalert-test-data'
+  validation_rules:
+    - 'syntax_check'
+    - 'field_validation'
+    - 'query_validation'
+    - 'alert_format_validation'
+
+# Debugging and troubleshooting
+debugging:
+  enabled: false
+  debug_level: 'INFO'
+  save_raw_queries: false
+  save_query_results: false
+  query_result_limit: 1000

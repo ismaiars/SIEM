@@ -1,0 +1,137 @@
+# Logs
+*.log
+logs/
+*.log.*
+
+# Data directories
+data/
+/data/
+data/*
+
+# Elasticsearch data
+data/elasticsearch/
+data/elasticsearch/*
+
+# PostgreSQL data
+data/postgresql/
+data/postgresql/*
+
+# Redis data
+data/redis/
+data/redis/*
+
+# Grafana data
+data/grafana/
+data/grafana/*
+
+# Nginx logs
+data/nginx/logs/
+data/nginx/logs/*
+
+# Suricata data
+data/suricata/
+data/suricata/*
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Certificates and keys
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+config/*/certs/
+config/*/certs/*
+wazuh/certs/
+wazuh/certs/*
+
+# Docker volumes
+.docker/
+docker-compose.override.yml
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Temporary files
+*.tmp
+*.temp
+
+# Node modules (if any)
+node_modules/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+
+# Compiled binaries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+
+# Large files that shouldn't be in git
+*.iso
+*.vmdk
+*.ova
+*.ovf
+
+# Monitoring and metrics data
+prometheus_data/
+grafana_data/
+
+# Wazuh specific
+wazuh/var/
+wazuh/logs/
+wazuh/queue/
+
+# ElasticSearch specific
+elasticsearch/data/
+elasticsearch/logs/
+
+# Kibana specific
+kibana/data/
+kibana/optimize/
+
+# Logstash specific
+logstash/data/
+logstash/logs/

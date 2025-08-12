@@ -1,0 +1,323 @@
+# =============================================================================
+# Logstash Configuration for SIEM OpenSource PyMES
+# =============================================================================
+# This configuration file sets up Logstash for a SIEM environment
+# with performance optimization and security event processing
+# =============================================================================
+
+# =============================================================================
+# NODE CONFIGURATION
+# =============================================================================
+node.name: "siem-logstash"
+path.data: "/usr/share/logstash/data"
+path.logs: "/usr/share/logstash/logs"
+path.settings: "/usr/share/logstash/config"
+path.config: "/usr/share/logstash/pipeline"
+
+# =============================================================================
+# PIPELINE CONFIGURATION
+# =============================================================================
+pipeline.workers: 4
+pipeline.batch.size: 1000
+pipeline.batch.delay: 50
+pipeline.unsafe_shutdown: false
+pipeline.plugin_classloaders: false
+pipeline.separate_logs: false
+pipeline.ordered: auto
+
+# Pipeline settings for SIEM workloads
+pipeline.ecs_compatibility: v8
+
+# =============================================================================
+# QUEUE CONFIGURATION
+# =============================================================================
+queue.type: persisted
+queue.max_events: 0
+queue.max_bytes: 1gb
+queue.checkpoint.acks: 1024
+queue.checkpoint.writes: 1024
+queue.checkpoint.interval: 1000
+queue.drain: false
+
+# Dead letter queue
+dead_letter_queue.enable: true
+dead_letter_queue.max_bytes: 1gb
+dead_letter_queue.flush_interval: 5000
+dead_letter_queue.commit_offsets: true
+
+# =============================================================================
+# HTTP API CONFIGURATION
+# =============================================================================
+http.host: "0.0.0.0"
+http.port: 9600
+api.enabled: true
+api.http.host: "0.0.0.0"
+api.http.port: 9600
+api.ssl.enabled: false
+api.auth.type: none
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+log.level: info
+log.format: json
+path.logs: "/usr/share/logstash/logs"
+
+# Logger configuration
+logger.logstash.level: INFO
+logger.slowlog.level: TRACE
+logger.licensereader.level: ERROR
+
+# =============================================================================
+# MONITORING CONFIGURATION
+# =============================================================================
+monitoring.enabled: true
+monitoring.elasticsearch.hosts: ["https://elasticsearch:9200"]
+monitoring.elasticsearch.username: "logstash_system"
+monitoring.elasticsearch.password: "${LOGSTASH_PASSWORD}"
+monitoring.elasticsearch.ssl.certificate_authority: "/usr/share/logstash/config/certs/ca/ca.crt"
+monitoring.elasticsearch.ssl.verification_mode: certificate
+monitoring.elasticsearch.sniffing: false
+monitoring.collection.interval: 10s
+monitoring.collection.pipeline.details.enabled: true
+
+# =============================================================================
+# X-PACK CONFIGURATION
+# =============================================================================
+xpack.monitoring.enabled: true
+xpack.monitoring.elasticsearch.hosts: ["https://elasticsearch:9200"]
+xpack.monitoring.elasticsearch.username: "logstash_system"
+xpack.monitoring.elasticsearch.password: "${LOGSTASH_PASSWORD}"
+xpack.monitoring.elasticsearch.ssl.certificate_authority: "/usr/share/logstash/config/certs/ca/ca.crt"
+xpack.monitoring.elasticsearch.ssl.verification_mode: certificate
+
+# =============================================================================
+# PERFORMANCE TUNING
+# =============================================================================
+# JVM settings
+config.reload.automatic: true
+config.reload.interval: 3s
+config.support_escapes: false
+config.field_reference.escape_style: percent
+
+# Memory settings
+config.string_interpolation: true
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+# SSL/TLS settings
+ssl.enabled: false
+ssl.verification_mode: certificate
+ssl.certificate_authorities: ["/usr/share/logstash/config/certs/ca/ca.crt"]
+ssl.certificate: "/usr/share/logstash/config/certs/logstash/logstash.crt"
+ssl.key: "/usr/share/logstash/config/certs/logstash/logstash.key"
+
+# =============================================================================
+# PIPELINE MANAGEMENT
+# =============================================================================
+xpack.management.enabled: false
+xpack.management.pipeline.id: ["main", "siem-processing", "threat-intel"]
+xpack.management.elasticsearch.hosts: ["https://elasticsearch:9200"]
+xpack.management.elasticsearch.username: "logstash_system"
+xpack.management.elasticsearch.password: "${LOGSTASH_PASSWORD}"
+xpack.management.elasticsearch.ssl.certificate_authority: "/usr/share/logstash/config/certs/ca/ca.crt"
+xpack.management.elasticsearch.ssl.verification_mode: certificate
+xpack.management.logstash.poll_interval: 5s
+
+# =============================================================================
+# MODULES CONFIGURATION
+# =============================================================================
+modules:
+  - name: netflow
+    var.elasticsearch.hosts: "https://elasticsearch:9200"
+    var.elasticsearch.username: "logstash_writer"
+    var.elasticsearch.password: "${LOGSTASH_PASSWORD}"
+    var.elasticsearch.ssl.enabled: true
+    var.elasticsearch.ssl.certificate_authority: "/usr/share/logstash/config/certs/ca/ca.crt"
+    var.elasticsearch.ssl.verification_mode: certificate
+    var.input.udp.port: 2055
+
+# =============================================================================
+# SIEM SPECIFIC SETTINGS
+# =============================================================================
+# Custom settings for SIEM processing
+siem.processing.enabled: true
+siem.enrichment.enabled: true
+siem.threat_intel.enabled: true
+siem.geoip.enabled: true
+siem.user_agent.enabled: true
+
+# Index template settings
+siem.index.template.enabled: true
+siem.index.template.name: "siem-logstash"
+siem.index.template.pattern: "logstash-*"
+
+# =============================================================================
+# GEOIP CONFIGURATION
+# =============================================================================
+# GeoIP database settings
+geoip.database.path: "/usr/share/logstash/vendor/geoip"
+geoip.database.type: "mmdb"
+geoip.cache_size: 1000
+
+# =============================================================================
+# PERSISTENT QUEUE SETTINGS
+# =============================================================================
+# Advanced queue settings for high-throughput SIEM environments
+queue.page_capacity: 64mb
+queue.max_events: 0
+queue.max_bytes: 1gb
+queue.checkpoint.acks: 1024
+queue.checkpoint.writes: 1024
+queue.checkpoint.interval: 1000
+
+# =============================================================================
+# FIELD REFERENCE SETTINGS
+# =============================================================================
+# Field reference settings for ECS compatibility
+config.field_reference.parser: "STRICT"
+config.field_reference.escape_style: "percent"
+
+# =============================================================================
+# PLUGIN SETTINGS
+# =============================================================================
+# Plugin path and settings
+path.plugins: ["/usr/share/logstash/plugins"]
+
+# Plugin-specific settings
+plugin.id: "siem-logstash"
+
+# =============================================================================
+# CLUSTER SETTINGS
+# =============================================================================
+# Cluster UUID for monitoring
+cluster.uuid: "${CLUSTER_UUID}"
+
+# =============================================================================
+# CUSTOM SIEM PROCESSORS
+# =============================================================================
+# Custom processors for SIEM events
+processors:
+  threat_intel:
+    enabled: true
+    cache_size: 10000
+    cache_ttl: 3600
+  
+  geoip_enrichment:
+    enabled: true
+    database_path: "/usr/share/logstash/vendor/geoip/GeoLite2-City.mmdb"
+  
+  user_agent_parsing:
+    enabled: true
+    cache_size: 1000
+  
+  dns_resolution:
+    enabled: true
+    cache_size: 5000
+    cache_ttl: 1800
+
+# =============================================================================
+# ALERTING INTEGRATION
+# =============================================================================
+# Integration with alerting systems
+alerting:
+  enabled: true
+  webhook_url: "${ALERT_WEBHOOK_URL}"
+  slack_webhook: "${SLACK_WEBHOOK_URL}"
+  email_smtp:
+    host: "${SMTP_HOST}"
+    port: 587
+    username: "${SMTP_USERNAME}"
+    password: "${SMTP_PASSWORD}"
+
+# =============================================================================
+# THREAT INTELLIGENCE
+# =============================================================================
+# Threat intelligence feeds configuration
+threat_intel:
+  virustotal:
+    api_key: "${VIRUSTOTAL_API_KEY}"
+    enabled: true
+    cache_ttl: 3600
+  
+  misp:
+    url: "${MISP_URL}"
+    api_key: "${MISP_API_KEY}"
+    enabled: false
+  
+  otx:
+    api_key: "${OTX_API_KEY}"
+    enabled: false
+
+# =============================================================================
+# DATA RETENTION
+# =============================================================================
+# Data retention policies
+retention:
+  hot_data_days: 7
+  warm_data_days: 30
+  cold_data_days: 90
+  delete_after_days: 365
+
+# =============================================================================
+# PERFORMANCE MONITORING
+# =============================================================================
+# Performance monitoring settings
+performance:
+  slow_log_threshold_warn: 2s
+  slow_log_threshold_info: 5s
+  slow_log_threshold_debug: 10s
+  
+  metrics:
+    enabled: true
+    interval: 30s
+    
+  profiling:
+    enabled: false
+    cpu_enabled: false
+    heap_enabled: false
+
+# =============================================================================
+# DEVELOPMENT SETTINGS
+# =============================================================================
+# Development and debugging settings (disable in production)
+config.debug: false
+log.level: info
+config.test_and_exit: false
+config.reload.automatic: true
+config.reload.interval: 3s
+
+# =============================================================================
+# CUSTOM FIELD MAPPINGS
+# =============================================================================
+# Custom field mappings for SIEM events
+field_mappings:
+  timestamp_field: "@timestamp"
+  source_ip_field: "source.ip"
+  destination_ip_field: "destination.ip"
+  event_type_field: "event.type"
+  severity_field: "event.severity"
+  rule_id_field: "rule.id"
+  rule_name_field: "rule.name"
+
+# =============================================================================
+# ELASTICSEARCH OUTPUT SETTINGS
+# =============================================================================
+# Default Elasticsearch output settings
+elasticsearch:
+  hosts: ["https://elasticsearch:9200"]
+  username: "logstash_writer"
+  password: "${LOGSTASH_PASSWORD}"
+  ssl:
+    enabled: true
+    certificate_authority: "/usr/share/logstash/config/certs/ca/ca.crt"
+    verification_mode: certificate
+  index: "logstash-%{+YYYY.MM.dd}"
+  template_name: "logstash"
+  template_pattern: "logstash-*"
+  manage_template: true
+
+# =============================================================================
+# END OF CONFIGURATION
+# =============================================================================

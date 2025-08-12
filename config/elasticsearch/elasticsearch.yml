@@ -1,0 +1,23 @@
+# =============================================================================
+# Elasticsearch Configuration for SIEM OpenSource PyMES - Minimal
+# =============================================================================
+
+# Cluster configuration
+cluster.name: siem-pymes-cluster
+node.name: siem-node-01
+
+# Network settings
+network.host: 0.0.0.0
+http.port: 9200
+
+# Discovery settings for single-node cluster
+discovery.type: single-node
+
+# Security disabled for initial setup
+xpack.security.enabled: false
+
+# Disable ML to reduce resource usage
+xpack.ml.enabled: false
+
+# Basic logging
+logger.level: INFO

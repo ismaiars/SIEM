@@ -1,0 +1,508 @@
+# =============================================================================
+# SIEM OpenSource PyMES - Docker Compose Stack
+# =============================================================================
+# Complete SIEM solution with Wazuh, Elastic Stack, Suricata, and monitoring
+# 
+# Usage:
+#   cp .env.example .env
+#   docker-compose up -d
+#
+# Services:
+#   - Elasticsearch (port 9200)
+#   - Kibana (port 5601)
+#   - Wazuh Manager (port 1514, 1515, 55000)
+#   - Wazuh Dashboard (port 443)
+#   - Logstash (port 5044, 5000)
+#   - Filebeat
+#   - Suricata
+#   - Grafana (port 3000)
+#   - PostgreSQL (port 5432)
+#   - Redis (port 6379)
+#   - ElastAlert (alerting)
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # =============================================================================
+  # ELASTICSEARCH CLUSTER
+  # =============================================================================
+  elasticsearch:
+    image: elasticsearch:7.17.15
+    container_name: siem-elasticsearch
+    hostname: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - xpack.security.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    mem_limit: ${ES_MEM_LIMIT:-4g}
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+      - ./config/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+      - ./config/elasticsearch/certs:/usr/share/elasticsearch/config/certs:ro
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - siem-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # =============================================================================
+  # KIBANA
+  # =============================================================================
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${KIBANA_VERSION:-8.10.4}
+    container_name: siem-kibana
+    hostname: kibana
+    environment:
+      - SERVERNAME=kibana
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      # - ELASTICSEARCH_USERNAME=kibana_system
+      # - ELASTICSEARCH_PASSWORD=${KIBANA_PASSWORD:-SecurePass123!}
+      # - ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES=config/certs/ca/ca.crt
+      - XPACK_SECURITY_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY:-a7a6311933d3503b89bc2dbc36572c01a6b9c9a0}
+      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY:-a7a6311933d3503b89bc2dbc36572c01a6b9c9a0}
+      - XPACK_REPORTING_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY:-a7a6311933d3503b89bc2dbc36572c01a6b9c9a0}
+      - SERVER_SSL_ENABLED=false
+      # - SERVER_SSL_CERTIFICATE=config/certs/kibana/kibana.crt
+      # - SERVER_SSL_KEY=config/certs/kibana/kibana.key
+    volumes:
+      - ./config/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+      - ./config/elasticsearch/certs:/usr/share/kibana/config/certs:ro
+      - ./elastic/kibana-dashboards:/usr/share/kibana/dashboards:ro
+    ports:
+      - "5601:5601"
+    networks:
+      - siem-network
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -k https://localhost:5601/api/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # =============================================================================
+  # LOGSTASH
+  # =============================================================================
+  logstash:
+    image: docker.elastic.co/logstash/logstash:${LOGSTASH_VERSION:-8.11.0}
+    container_name: siem-logstash
+    hostname: logstash
+    environment:
+      - "LS_JAVA_OPTS=-Xms${LOGSTASH_HEAP_SIZE:-1g} -Xmx${LOGSTASH_HEAP_SIZE:-1g}"
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      # - ELASTICSEARCH_USERNAME=logstash_system
+      # - ELASTICSEARCH_PASSWORD=${LOGSTASH_PASSWORD:-SecurePass123!}
+    volumes:
+      - ./config/logstash/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ./config/logstash/pipelines.yml:/usr/share/logstash/config/pipelines.yml:ro
+      - ./config/logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./config/elasticsearch/certs:/usr/share/logstash/config/certs:ro
+    ports:
+      - "5044:5044"  # Beats input
+      - "5000:5000"  # TCP input
+      - "9600:9600"  # Logstash monitoring
+    networks:
+      - siem-network
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9600/_node/stats || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # =============================================================================
+  # WAZUH MANAGER
+  # =============================================================================
+  wazuh-manager:
+    image: wazuh/wazuh-manager:${WAZUH_VERSION:-4.7.0}
+    container_name: siem-wazuh-manager
+    hostname: wazuh-manager
+    environment:
+      - WAZUH_MANAGER_CONF_FILE=/var/ossec/etc/ossec.conf
+      - FILEBEAT_SSL_VERIFICATION_MODE=none
+      # - SSL_CERTIFICATE_AUTHORITIES=/etc/ssl/root-ca.pem
+      # - SSL_CERTIFICATE=/etc/ssl/filebeat.pem
+      # - SSL_KEY=/etc/ssl/filebeat.key
+      - WAZUH_CLUSTER_NODE_NAME=wazuh-manager
+      - WAZUH_CLUSTER_NODE_TYPE=master
+      - WAZUH_CLUSTER_KEY=${WAZUH_CLUSTER_KEY:-c98b62a9b6169ac5f67dae55ae4a9088}
+    volumes:
+      - wazuh_api_configuration:/var/ossec/api/configuration
+      - wazuh_etc:/var/ossec/etc
+      - wazuh_logs:/var/ossec/logs
+      - wazuh_queue:/var/ossec/queue
+      - wazuh_var_multigroups:/var/ossec/var/multigroups
+      - wazuh_integrations:/var/ossec/integrations
+      - wazuh_active_response:/var/ossec/active-response/bin
+      - wazuh_agentless:/var/ossec/agentless
+      - wazuh_wodles:/var/ossec/wodles
+      - filebeat_etc:/etc/filebeat
+      - filebeat_var:/var/lib/filebeat
+      - ./wazuh/rules:/var/ossec/etc/rules:ro
+      - ./wazuh/decoders:/var/ossec/etc/decoders:ro
+      - ./wazuh/configs/ossec.conf:/var/ossec/etc/ossec.conf:ro
+      - ./config/wazuh/certs:/etc/ssl:ro
+    ports:
+      - "1514:1514"     # Wazuh agent communication
+      - "1515:1515"     # Wazuh agent enrollment
+      - "514:514/udp"   # Syslog
+      - "55000:55000"   # Wazuh API
+    networks:
+      - siem-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "/var/ossec/bin/wazuh-control status | grep -q 'wazuh-manager is running' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # =============================================================================
+  # WAZUH DASHBOARD
+  # =============================================================================
+  # wazuh-dashboard:
+  #   image: wazuh/wazuh-dashboard:${WAZUH_VERSION:-4.7.0}
+  #   container_name: siem-wazuh-dashboard
+  #   hostname: wazuh-dashboard
+  #   environment:
+  #     - OPENSEARCH_HOSTS=https://elasticsearch:9200
+  #     - WAZUH_API_URL=https://wazuh-manager:55000
+  #     - API_USERNAME=wazuh-wui
+  #     - API_PASSWORD=${WAZUH_API_PASSWORD:-SecurePass123!}
+  #     - DASHBOARD_USERNAME=kibanaserver
+  #     - DASHBOARD_PASSWORD=${WAZUH_DASHBOARD_PASSWORD:-SecurePass123!}
+  #   volumes:
+  #     - ./config/wazuh-dashboard/opensearch_dashboards.yml:/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml:ro
+  #     - ./config/wazuh-dashboard/wazuh.yml:/usr/share/wazuh-dashboard/data/wazuh/config/wazuh.yml:ro
+  #     - ./config/elasticsearch/certs:/usr/share/wazuh-dashboard/certs:ro
+  #   ports:
+  #     - "443:5601"
+  #   networks:
+  #     - siem-network
+  #   depends_on:
+  #     - wazuh-manager
+  #     - elasticsearch
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -s -k https://localhost:5601/api/status || exit 1"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+  #     start_period: 60s
+
+  # =============================================================================
+  # FILEBEAT
+  # =============================================================================
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:${FILEBEAT_VERSION:-8.11.0}
+    container_name: siem-filebeat
+    hostname: filebeat
+    user: root
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      # - ELASTICSEARCH_USERNAME=filebeat_internal
+      # - ELASTICSEARCH_PASSWORD=${FILEBEAT_PASSWORD:-SecurePass123!}
+      - KIBANA_HOST=http://kibana:5601
+    volumes:
+      - ./config/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./config/elasticsearch/certs:/usr/share/filebeat/certs:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/log:/var/log:ro
+      - filebeat_data:/usr/share/filebeat/data
+    command: filebeat -e -strict.perms=false
+    networks:
+      - siem-network
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # =============================================================================
+  # SURICATA (Network IDS)
+  # =============================================================================
+  suricata:
+    image: jasonish/suricata:${SURICATA_VERSION:-7.0.2}
+    container_name: siem-suricata
+    hostname: suricata
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - SYS_NICE
+    environment:
+      - SURICATA_OPTIONS=-i any
+    volumes:
+      - ./config/suricata/suricata.yaml:/etc/suricata/suricata.yaml:ro
+      - ./config/suricata/rules:/var/lib/suricata/rules:ro
+      - suricata_logs:/var/log/suricata
+      - suricata_lib:/var/lib/suricata
+    command: >
+      sh -c "suricata-update &&
+             suricata -c /etc/suricata/suricata.yaml -i any -D &&
+             tail -f /var/log/suricata/suricata.log"
+    restart: unless-stopped
+
+  # =============================================================================
+  # GRAFANA (Metrics and Monitoring)
+  # =============================================================================
+  grafana:
+    image: grafana/grafana:${GRAFANA_VERSION:-10.2.0}
+    container_name: siem-grafana
+    hostname: grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-SecurePass123!}
+      # - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource,grafana-worldmap-panel
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_SERVER_PROTOCOL=http
+      # - GF_SERVER_CERT_FILE=/etc/ssl/certs/grafana.crt
+      # - GF_SERVER_CERT_KEY=/etc/ssl/certs/grafana.key
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./config/elasticsearch/certs:/etc/ssl/certs:ro
+    ports:
+      - "3000:3000"
+    networks:
+      - siem-network
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -k https://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # =============================================================================
+  # POSTGRESQL (Database for Wazuh and other services)
+  # =============================================================================
+  postgresql:
+    image: postgres:${POSTGRES_VERSION:-15-alpine}
+    container_name: siem-postgresql
+    hostname: postgresql
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-wazuh}
+      - POSTGRES_USER=${POSTGRES_USER:-wazuh_admin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-SecurePass123!}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+      - ./config/postgresql/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./config/postgresql/init-scripts:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - siem-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-wazuh_admin} -d ${POSTGRES_DB:-wazuh}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # =============================================================================
+  # REDIS (Cache and Message Broker)
+  # =============================================================================
+  redis:
+    image: redis:${REDIS_VERSION:-7-alpine}
+    container_name: siem-redis
+    hostname: redis
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass ${REDIS_PASSWORD:-SecurePass123!}
+    volumes:
+      - redis_data:/data
+      - ./config/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    ports:
+      - "6379:6379"
+    networks:
+      - siem-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a ${REDIS_PASSWORD:-SecurePass123!} ping | grep PONG"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # =============================================================================
+  # ELASTALERT (Alerting Engine)
+  # =============================================================================
+  elastalert:
+    image: jertel/elastalert2:${ELASTALERT_VERSION:-2.15.0}
+    container_name: siem-elastalert
+    hostname: elastalert
+    environment:
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_PORT=9200
+      - ELASTICSEARCH_USE_SSL=True
+      - ELASTICSEARCH_USERNAME=elastalert
+      - ELASTICSEARCH_PASSWORD=${ELASTALERT_PASSWORD:-SecurePass123!}
+      - ELASTICSEARCH_CA_CERTS=/opt/elastalert/config/certs/ca/ca.crt
+    volumes:
+      - ./config/elastalert/elastalert.yaml:/opt/elastalert/config.yaml:ro
+      - ./config/elastalert/rules:/opt/elastalert/rules:ro
+      - ./config/elasticsearch/certs:/opt/elastalert/config/certs:ro
+      - elastalert_data:/opt/elastalert/data
+    networks:
+      - siem-network
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # =============================================================================
+  # NGINX (Reverse Proxy and Load Balancer)
+  # =============================================================================
+  nginx:
+    image: nginx:${NGINX_VERSION:-1.25-alpine}
+    container_name: siem-nginx
+    hostname: nginx
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./config/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./config/elasticsearch/certs:/etc/ssl/certs:ro
+      - ./web:/usr/share/nginx/html/siem:ro
+      - nginx_logs:/var/log/nginx
+    ports:
+      - "80:80"
+      - "8443:443"
+    networks:
+      - siem-network
+    depends_on:
+      - kibana
+      # - wazuh-dashboard
+      - grafana
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  siem-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  # Elasticsearch
+  elasticsearch_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/elasticsearch
+  
+  # Wazuh
+  wazuh_api_configuration:
+    driver: local
+  wazuh_etc:
+    driver: local
+  wazuh_logs:
+    driver: local
+  wazuh_queue:
+    driver: local
+  wazuh_var_multigroups:
+    driver: local
+  wazuh_integrations:
+    driver: local
+  wazuh_active_response:
+    driver: local
+  wazuh_agentless:
+    driver: local
+  wazuh_wodles:
+    driver: local
+  
+  # Filebeat
+  filebeat_etc:
+    driver: local
+  filebeat_var:
+    driver: local
+  filebeat_data:
+    driver: local
+  
+  # Suricata
+  suricata_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/suricata/logs
+  suricata_lib:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/suricata/lib
+  
+  # Grafana
+  grafana_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/grafana
+  
+  # PostgreSQL
+  postgresql_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/postgresql
+  
+  # Redis
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/redis
+  
+  # ElastAlert
+  elastalert_data:
+    driver: local
+  
+  # Nginx
+  nginx_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/nginx/logs

@@ -1,0 +1,519 @@
+# =============================================================================
+# Filebeat Configuration for SIEM OpenSource PyMES
+# =============================================================================
+# This configuration file sets up Filebeat for log collection and forwarding
+# in a SIEM environment with multiple input sources and processors
+# =============================================================================
+
+# =============================================================================
+# FILEBEAT INPUTS
+# =============================================================================
+filebeat.inputs:
+
+# System logs
+- type: log
+  id: system-logs
+  enabled: true
+  paths:
+    - /var/log/syslog
+    - /var/log/auth.log
+    - /var/log/kern.log
+    - /var/log/messages
+    - /var/log/secure
+    - /var/log/cron
+  fields:
+    logtype: system
+    environment: "${ENVIRONMENT:production}"
+  fields_under_root: true
+  multiline.pattern: '^\d{4}-\d{2}-\d{2}'
+  multiline.negate: true
+  multiline.match: after
+  scan_frequency: 10s
+  harvester_buffer_size: 16384
+  max_bytes: 10485760
+
+# Apache/Nginx access logs
+- type: log
+  id: web-access-logs
+  enabled: true
+  paths:
+    - /var/log/apache2/access.log
+    - /var/log/nginx/access.log
+    - /var/log/httpd/access_log
+  fields:
+    logtype: web-access
+    service: web
+  fields_under_root: true
+  json.keys_under_root: false
+  json.add_error_key: true
+  scan_frequency: 5s
+
+# Apache/Nginx error logs
+- type: log
+  id: web-error-logs
+  enabled: true
+  paths:
+    - /var/log/apache2/error.log
+    - /var/log/nginx/error.log
+    - /var/log/httpd/error_log
+  fields:
+    logtype: web-error
+    service: web
+  fields_under_root: true
+  multiline.pattern: '^\['
+  multiline.negate: true
+  multiline.match: after
+
+# SSH logs
+- type: log
+  id: ssh-logs
+  enabled: true
+  paths:
+    - /var/log/auth.log
+    - /var/log/secure
+  include_lines: ['sshd', 'ssh']
+  fields:
+    logtype: ssh
+    service: ssh
+  fields_under_root: true
+
+# Docker container logs
+- type: container
+  id: docker-logs
+  enabled: true
+  paths:
+    - '/var/lib/docker/containers/*/*.log'
+  fields:
+    logtype: docker
+    service: container
+  fields_under_root: true
+  json.keys_under_root: true
+  json.add_error_key: true
+  processors:
+    - add_docker_metadata:
+        host: "unix:///var/run/docker.sock"
+
+# Windows Event Logs (if running on Windows)
+- type: winlogbeat
+  id: windows-events
+  enabled: false
+  event_logs:
+    - name: Application
+      level: warning
+    - name: System
+      level: warning
+    - name: Security
+      level: information
+    - name: Microsoft-Windows-Sysmon/Operational
+      level: information
+  fields:
+    logtype: windows-event
+    service: windows
+  fields_under_root: true
+
+# Custom application logs
+- type: log
+  id: application-logs
+  enabled: true
+  paths:
+    - /var/log/app/*.log
+    - /opt/app/logs/*.log
+  fields:
+    logtype: application
+    service: custom-app
+  fields_under_root: true
+  json.keys_under_root: true
+  json.add_error_key: true
+
+# Database logs
+- type: log
+  id: database-logs
+  enabled: true
+  paths:
+    - /var/log/mysql/*.log
+    - /var/log/postgresql/*.log
+    - /var/log/mongodb/*.log
+  fields:
+    logtype: database
+    service: database
+  fields_under_root: true
+
+# Firewall logs
+- type: log
+  id: firewall-logs
+  enabled: true
+  paths:
+    - /var/log/ufw.log
+    - /var/log/iptables.log
+    - /var/log/pf.log
+  fields:
+    logtype: firewall
+    service: firewall
+  fields_under_root: true
+
+# Suricata logs
+- type: log
+  id: suricata-logs
+  enabled: true
+  paths:
+    - /var/log/suricata/eve.json
+    - /var/log/suricata/fast.log
+  fields:
+    logtype: suricata
+    service: ids
+  fields_under_root: true
+  json.keys_under_root: true
+  json.add_error_key: true
+
+# =============================================================================
+# FILEBEAT MODULES
+# =============================================================================
+filebeat.config.modules:
+  path: ${path.config}/modules.d/*.yml
+  reload.enabled: true
+  reload.period: 10s
+
+# =============================================================================
+# PROCESSORS
+# =============================================================================
+processors:
+# Add host information
+- add_host_metadata:
+    when.not.contains.tags: forwarded
+    netinfo.enabled: true
+    cache.ttl: 5m
+    geo.name: datacenter
+    geo.location: "40.7128, -74.0060"
+    geo.continent_name: "North America"
+    geo.country_name: "United States"
+    geo.region_name: "New York"
+    geo.city_name: "New York"
+
+# Add Docker metadata
+- add_docker_metadata:
+    host: "unix:///var/run/docker.sock"
+    match_fields: ["container.id"]
+    match_pids: ["process.pid", "process.ppid"]
+    match_source: true
+    match_source_index: 4
+    match_short_id: false
+    cleanup_timeout: 60
+    labels.dedot: false
+    env.dedot: false
+
+# Add Kubernetes metadata
+- add_kubernetes_metadata:
+    host: ${NODE_NAME}
+    kube_config: ${HOME}/.kube/config
+    default_indexers.enabled: true
+    default_matchers.enabled: true
+    include_labels: ["app", "version", "environment"]
+    include_annotations: ["kubernetes.io/change-cause"]
+
+# GeoIP enrichment
+- add_geoip:
+    field: "source.ip"
+    target_field: "source.geo"
+    database_file: "/usr/share/filebeat/GeoLite2-City.mmdb"
+    properties: ["continent_name", "country_name", "region_name", "city_name", "location"]
+    ignore_missing: true
+    ignore_failure: true
+
+- add_geoip:
+    field: "destination.ip"
+    target_field: "destination.geo"
+    database_file: "/usr/share/filebeat/GeoLite2-City.mmdb"
+    properties: ["continent_name", "country_name", "region_name", "city_name", "location"]
+    ignore_missing: true
+    ignore_failure: true
+
+# User agent parsing
+- add_user_agent:
+    field: "user_agent.original"
+    target_field: "user_agent"
+    ignore_missing: true
+    ignore_failure: true
+
+# Timestamp processing
+- timestamp:
+    field: "@timestamp"
+    layouts:
+      - '2006-01-02T15:04:05.000Z'
+      - '2006-01-02T15:04:05Z'
+      - 'Jan _2 15:04:05'
+      - '2006-01-02 15:04:05'
+    test:
+      - '2023-01-01T12:00:00.000Z'
+
+# Field renaming for ECS compliance
+- rename:
+    fields:
+      - from: "host.hostname"
+        to: "host.name"
+      - from: "beat.hostname"
+        to: "agent.hostname"
+    ignore_missing: true
+    fail_on_error: false
+
+# Drop empty fields
+- drop_fields:
+    fields: ["beat", "input", "prospector", "offset"]
+    ignore_missing: true
+
+# Add tags based on log type
+- add_tags:
+    tags: ["siem", "filebeat", "${logtype}"]
+    target: "tags"
+
+# Fingerprint for deduplication
+- fingerprint:
+    fields: ["message", "@timestamp", "host.name"]
+    target_field: "@metadata.fingerprint"
+    method: "sha256"
+
+# =============================================================================
+# OUTPUT CONFIGURATION
+# =============================================================================
+# Elasticsearch output
+output.elasticsearch:
+  enabled: true
+  hosts: ["https://elasticsearch:9200"]
+  username: "filebeat_writer"
+  password: "${FILEBEAT_PASSWORD}"
+  protocol: "https"
+  ssl.enabled: true
+  ssl.certificate_authorities: ["/usr/share/filebeat/certs/ca/ca.crt"]
+  ssl.verification_mode: certificate
+  
+  # Index settings
+  index: "filebeat-%{[agent.version]}-%{+yyyy.MM.dd}"
+  template.name: "filebeat"
+  template.pattern: "filebeat-*"
+  template.settings:
+    index.number_of_shards: 1
+    index.number_of_replicas: 0
+    index.refresh_interval: "30s"
+    index.codec: best_compression
+  
+  # ILM settings
+  ilm.enabled: true
+  ilm.rollover_alias: "filebeat"
+  ilm.pattern: "{now/d}-000001"
+  ilm.policy: "filebeat-policy"
+  
+  # Performance settings
+  worker: 2
+  bulk_max_size: 1000
+  timeout: 90s
+  flush_interval: 1s
+  compression_level: 3
+  
+  # Pipeline settings
+  pipeline: "filebeat-pipeline"
+
+# Logstash output (alternative)
+output.logstash:
+  enabled: false
+  hosts: ["logstash:5044"]
+  ssl.enabled: true
+  ssl.certificate_authorities: ["/usr/share/filebeat/certs/ca/ca.crt"]
+  ssl.verification_mode: certificate
+  worker: 2
+  compression_level: 3
+  bulk_max_size: 2048
+  slow_start: true
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat
+  keepfiles: 7
+  permissions: 0644
+  rotateeverybytes: 10485760
+  interval: 24h
+
+logging.selectors: ["*"]
+logging.metrics.enabled: true
+logging.metrics.period: 30s
+
+# JSON logging format
+logging.json: true
+logging.ecs: true
+
+# =============================================================================
+# MONITORING CONFIGURATION
+# =============================================================================
+monitoring.enabled: true
+monitoring.elasticsearch:
+  hosts: ["https://elasticsearch:9200"]
+  username: "filebeat_monitoring"
+  password: "${FILEBEAT_PASSWORD}"
+  ssl.enabled: true
+  ssl.certificate_authorities: ["/usr/share/filebeat/certs/ca/ca.crt"]
+  ssl.verification_mode: certificate
+  metrics.period: 10s
+  state.period: 1m
+
+# =============================================================================
+# HTTP ENDPOINT
+# =============================================================================
+http.enabled: true
+http.host: "0.0.0.0"
+http.port: 5066
+http.pprof.enabled: false
+
+# =============================================================================
+# GENERAL SETTINGS
+# =============================================================================
+name: "siem-filebeat"
+tags: ["siem", "production", "filebeat"]
+fields:
+  environment: "${ENVIRONMENT:production}"
+  datacenter: "${DATACENTER:dc1}"
+  project: "siem-pymes"
+fields_under_root: true
+
+# Queue settings
+queue.mem:
+  events: 4096
+  flush.min_events: 512
+  flush.timeout: 1s
+
+# Registry settings
+filebeat.registry.path: "/usr/share/filebeat/data/registry"
+filebeat.registry.file_permissions: 0600
+filebeat.registry.flush: 1s
+
+# Shutdown settings
+filebeat.shutdown_timeout: 30s
+
+# =============================================================================
+# AUTODISCOVER CONFIGURATION
+# =============================================================================
+filebeat.autodiscover:
+  providers:
+    - type: docker
+      hints.enabled: true
+      hints.default_config:
+        type: container
+        paths:
+          - /var/lib/docker/containers/${data.docker.container.id}/*.log
+      templates:
+        - condition:
+            contains:
+              docker.container.image: nginx
+          config:
+            - type: container
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*.log
+              processors:
+                - add_docker_metadata:
+                    host: "unix:///var/run/docker.sock"
+        - condition:
+            contains:
+              docker.container.image: apache
+          config:
+            - type: container
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*.log
+              processors:
+                - add_docker_metadata:
+                    host: "unix:///var/run/docker.sock"
+
+    - type: kubernetes
+      node: ${NODE_NAME}
+      hints.enabled: true
+      hints.default_config:
+        type: container
+        paths:
+          - /var/log/containers/*${data.kubernetes.container.id}.log
+      templates:
+        - condition:
+            contains:
+              kubernetes.labels.app: nginx
+          config:
+            - type: container
+              paths:
+                - /var/log/containers/*${data.kubernetes.container.id}.log
+              processors:
+                - add_kubernetes_metadata:
+                    host: ${NODE_NAME}
+
+# =============================================================================
+# SECURITY SETTINGS
+# =============================================================================
+# SSL/TLS settings
+ssl.enabled: true
+ssl.verification_mode: certificate
+ssl.certificate_authorities: ["/usr/share/filebeat/certs/ca/ca.crt"]
+ssl.certificate: "/usr/share/filebeat/certs/filebeat/filebeat.crt"
+ssl.key: "/usr/share/filebeat/certs/filebeat/filebeat.key"
+
+# =============================================================================
+# PERFORMANCE TUNING
+# =============================================================================
+# File harvesting settings
+filebeat.inputs:
+  close_inactive: 5m
+  close_removed: true
+  close_renamed: false
+  close_eof: false
+  clean_inactive: 72h
+  clean_removed: true
+  ignore_older: 24h
+  scan_frequency: 10s
+  harvester_buffer_size: 16384
+  max_bytes: 10485760
+  multiline.timeout: 5s
+  tail_files: false
+  symlinks: false
+  backoff: 1s
+  max_backoff: 10s
+  backoff_factor: 2
+
+# =============================================================================
+# CUSTOM SIEM SETTINGS
+# =============================================================================
+# Custom settings for SIEM environment
+siem:
+  threat_intel:
+    enabled: true
+    feeds:
+      - name: "malware_domains"
+        url: "https://malware-domains.com/files/domains.txt"
+        refresh_interval: "1h"
+      - name: "tor_exit_nodes"
+        url: "https://check.torproject.org/api/bulk"
+        refresh_interval: "6h"
+  
+  enrichment:
+    enabled: true
+    geoip: true
+    user_agent: true
+    dns_resolution: true
+  
+  alerting:
+    enabled: true
+    high_priority_events:
+      - "authentication_failure"
+      - "privilege_escalation"
+      - "malware_detected"
+      - "data_exfiltration"
+
+# =============================================================================
+# DEVELOPMENT SETTINGS
+# =============================================================================
+# Development settings (disable in production)
+filebeat.config.inputs:
+  enabled: true
+  path: configs/*.yml
+  reload.enabled: true
+  reload.period: 10s
+
+# =============================================================================
+# END OF CONFIGURATION
+# =============================================================================

@@ -1,0 +1,266 @@
+# =============================================================================
+# Wazuh Indexer (OpenSearch) Configuration for SIEM OpenSource PyMES
+# =============================================================================
+# This configuration file sets up Wazuh Indexer based on OpenSearch
+# for security event indexing and search in a SIEM environment
+# =============================================================================
+
+# =============================================================================
+# CLUSTER CONFIGURATION
+# =============================================================================
+cluster.name: "wazuh-cluster"
+node.name: "wazuh-indexer-1"
+node.roles: ["master", "data", "ingest"]
+
+# Network settings
+network.host: "0.0.0.0"
+http.port: 9200
+transport.tcp.port: 9300
+
+# Discovery settings
+discovery.type: single-node
+discovery.seed_hosts: ["wazuh-indexer"]
+cluster.initial_master_nodes: ["wazuh-indexer-1"]
+
+# =============================================================================
+# PATH CONFIGURATION
+# =============================================================================
+path.data: "/var/lib/wazuh-indexer"
+path.logs: "/var/log/wazuh-indexer"
+path.repo: ["/var/lib/wazuh-indexer/snapshots"]
+
+# =============================================================================
+# MEMORY CONFIGURATION
+# =============================================================================
+bootstrap.memory_lock: true
+indices.memory.index_buffer_size: 20%
+indices.memory.min_index_buffer_size: 96mb
+indices.memory.max_index_buffer_size: 512mb
+
+# Circuit breaker settings
+indices.breaker.total.use_real_memory: false
+indices.breaker.total.limit: 95%
+indices.breaker.fielddata.limit: 40%
+indices.breaker.request.limit: 60%
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+# Security plugin settings
+plugins.security.disabled: false
+plugins.security.ssl.transport.pemcert_filepath: "/usr/share/wazuh-indexer/certs/wazuh-indexer.pem"
+plugins.security.ssl.transport.pemkey_filepath: "/usr/share/wazuh-indexer/certs/wazuh-indexer-key.pem"
+plugins.security.ssl.transport.pemtrustedcas_filepath: "/usr/share/wazuh-indexer/certs/root-ca.pem"
+plugins.security.ssl.transport.enforce_hostname_verification: false
+plugins.security.ssl.transport.resolve_hostname: false
+
+# HTTP SSL settings
+plugins.security.ssl.http.enabled: true
+plugins.security.ssl.http.pemcert_filepath: "/usr/share/wazuh-indexer/certs/wazuh-indexer.pem"
+plugins.security.ssl.http.pemkey_filepath: "/usr/share/wazuh-indexer/certs/wazuh-indexer-key.pem"
+plugins.security.ssl.http.pemtrustedcas_filepath: "/usr/share/wazuh-indexer/certs/root-ca.pem"
+
+# Security nodes
+plugins.security.nodes_dn:
+  - "CN=wazuh-indexer,OU=Wazuh,O=Wazuh,L=California,C=US"
+
+# Authentication settings
+plugins.security.authcz.admin_dn:
+  - "CN=admin,OU=Wazuh,O=Wazuh,L=California,C=US"
+
+# Audit logging
+plugins.security.audit.type: internal_opensearch
+plugins.security.audit.config.disabled_rest_categories: NONE
+plugins.security.audit.config.disabled_transport_categories: NONE
+
+# =============================================================================
+# PERFORMANCE TUNING
+# =============================================================================
+# Thread pool settings
+thread_pool.search.size: 4
+thread_pool.search.queue_size: 1000
+thread_pool.write.size: 4
+thread_pool.write.queue_size: 200
+thread_pool.get.size: 4
+thread_pool.get.queue_size: 1000
+
+# Index settings
+index.number_of_shards: 1
+index.number_of_replicas: 0
+index.refresh_interval: 30s
+index.translog.flush_threshold_size: 512mb
+index.translog.sync_interval: 30s
+
+# Search settings
+search.max_buckets: 100000
+search.allow_expensive_queries: true
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+logger.level: INFO
+logger.org.opensearch.transport: WARN
+logger.org.opensearch.discovery: WARN
+logger.org.opensearch.cluster.service: WARN
+logger.org.opensearch.http: WARN
+logger.org.opensearch.indices.recovery: WARN
+
+# =============================================================================
+# MONITORING CONFIGURATION
+# =============================================================================
+action.destructive_requires_name: true
+cluster.routing.allocation.disk.threshold_enabled: true
+cluster.routing.allocation.disk.watermark.low: 85%
+cluster.routing.allocation.disk.watermark.high: 90%
+cluster.routing.allocation.disk.watermark.flood_stage: 95%
+
+# =============================================================================
+# INDEX LIFECYCLE MANAGEMENT
+# =============================================================================
+# ILM settings for Wazuh indices
+opendistro.index_state_management.enabled: true
+opendistro.index_state_management.job_interval: 5
+opendistro.index_state_management.jitter: 0.1
+
+# =============================================================================
+# WAZUH SPECIFIC SETTINGS
+# =============================================================================
+# Wazuh template settings
+wazuh.monitoring.enabled: true
+wazuh.monitoring.frequency: 900
+wazuh.monitoring.shards: 1
+wazuh.monitoring.replicas: 0
+
+# Index patterns
+wazuh.alerts.sample.prefix: "wazuh-alerts-4.x-sample"
+wazuh.alerts.template.name: "wazuh"
+wazuh.alerts.template.pattern: "wazuh-alerts-*"
+
+# =============================================================================
+# ALERTING CONFIGURATION
+# =============================================================================
+# OpenSearch Alerting
+opendistro.alerting.enabled: true
+opendistro.alerting.destination.allow_list: ["chime", "slack", "custom_webhook", "email"]
+
+# =============================================================================
+# ANOMALY DETECTION
+# =============================================================================
+# OpenSearch Anomaly Detection
+opendistro.anomaly_detection.enabled: true
+opendistro.anomaly_detection.max_anomaly_detectors: 1000
+opendistro.anomaly_detection.max_multi_entity_anomaly_detectors: 10
+opendistro.anomaly_detection.max_anomaly_features: 5
+
+# =============================================================================
+# SQL PLUGIN
+# =============================================================================
+# OpenSearch SQL
+opendistro.sql.enabled: true
+opendistro.sql.slowlog: 2
+opendistro.sql.cursor.keep_alive: "1m"
+
+# =============================================================================
+# CROSS CLUSTER REPLICATION
+# =============================================================================
+# Cross-cluster replication (disabled by default)
+opendistro.replication.enabled: false
+
+# =============================================================================
+# PERFORMANCE ANALYZER
+# =============================================================================
+# Performance Analyzer
+opendistro.performanceanalyzer.enabled: true
+opendistro.performanceanalyzer.rca.enabled: true
+opendistro.performanceanalyzer.rca.store.file.location: "/var/lib/wazuh-indexer/rca"
+
+# =============================================================================
+# SNAPSHOT CONFIGURATION
+# =============================================================================
+# Snapshot settings
+repositories.url.allowed_urls: ["http://backup.example.com/*", "https://backup.example.com/*"]
+
+# =============================================================================
+# CUSTOM SIEM SETTINGS
+# =============================================================================
+# Custom settings for SIEM workloads
+siem.index.max_result_window: 100000
+siem.search.max_concurrent_searches: 10
+siem.aggregations.max_buckets: 100000
+
+# Field data cache
+indices.fielddata.cache.size: 20%
+indices.queries.cache.size: 10%
+indices.requests.cache.size: 2%
+
+# =============================================================================
+# RECOVERY SETTINGS
+# =============================================================================
+# Recovery settings
+cluster.routing.allocation.node_concurrent_recoveries: 2
+cluster.routing.allocation.node_initial_primaries_recoveries: 4
+indices.recovery.max_bytes_per_sec: 40mb
+indices.recovery.concurrent_streams: 3
+
+# =============================================================================
+# GATEWAY SETTINGS
+# =============================================================================
+# Gateway settings
+gateway.recover_after_nodes: 1
+gateway.expected_nodes: 1
+gateway.recover_after_time: "5m"
+
+# =============================================================================
+# HTTP SETTINGS
+# =============================================================================
+# HTTP settings
+http.max_content_length: 100mb
+http.max_initial_line_length: 4kb
+http.max_header_size: 8kb
+http.compression: true
+http.cors.enabled: false
+
+# =============================================================================
+# TRANSPORT SETTINGS
+# =============================================================================
+# Transport settings
+transport.tcp.compress: true
+transport.ping_schedule: "5s"
+
+# =============================================================================
+# SCRIPT SETTINGS
+# =============================================================================
+# Script settings
+script.allowed_types: ["inline", "stored"]
+script.allowed_contexts: ["search", "update", "aggs"]
+script.max_compilations_rate: "75/5m"
+
+# =============================================================================
+# INGEST SETTINGS
+# =============================================================================
+# Ingest node settings
+node.ingest: true
+ingest.geoip.downloader.enabled: true
+
+# =============================================================================
+# MACHINE LEARNING
+# =============================================================================
+# ML Commons (if available)
+opendistro.ml.enabled: false
+opendistro.ml.max_model_size_limit: 2gb
+opendistro.ml.only_run_on_ml_node: false
+
+# =============================================================================
+# CUSTOM WAZUH MAPPINGS
+# =============================================================================
+# Custom field mappings for Wazuh events
+wazuh.template.settings:
+  number_of_shards: 1
+  number_of_replicas: 0
+  refresh_interval: "30s"
+  codec: "best_compression"
+  max_result_window: 100000
+
+# =============================================================================
+# END OF CONFIGURATION
+# =============================================================================

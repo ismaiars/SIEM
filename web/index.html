@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIEM Dashboard - Centro de Control</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .dashboard-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .card-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .card-description {
+            color: #666;
+            text-align: center;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+        .card-status {
+            text-align: center;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .status-online {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-starting {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .elasticsearch { border-left: 5px solid #005571; }
+        .kibana { border-left: 5px solid #e8478d; }
+        .grafana { border-left: 5px solid #ff8c00; }
+        .wazuh { border-left: 5px solid #3498db; }
+        .suricata { border-left: 5px solid #e74c3c; }
+        .nginx { border-left: 5px solid #2ecc71; }
+
+        .system-status {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .status-item {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            background: #f8f9fa;
+        }
+
+        .status-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .status-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ SIEM Dashboard</h1>
+            <p>Centro de Control de Seguridad - Monitoreo y Análisis en Tiempo Real</p>
+        </div>
+
+        <div class="dashboard-grid">
+            <a href="http://localhost:9200" target="_blank" class="dashboard-card elasticsearch">
+                <div class="card-icon">🔍</div>
+                <div class="card-title">Elasticsearch</div>
+                <div class="card-description">Motor de búsqueda y análisis de datos. API principal para consultas directas y verificación del cluster.</div>
+                <div class="card-status status-online" id="elasticsearch-status">🟢 En Línea</div>
+            </a>
+
+            <a href="http://localhost:5601" target="_blank" class="dashboard-card kibana">
+                <div class="card-icon">📊</div>
+                <div class="card-title">Kibana</div>
+                <div class="card-description">Interfaz principal de visualización. Dashboards, búsquedas avanzadas y análisis de logs.</div>
+                <div class="card-status status-starting" id="kibana-status">🟡 Iniciando</div>
+            </a>
+
+            <a href="http://localhost:3000" target="_blank" class="dashboard-card grafana">
+                <div class="card-icon">📈</div>
+                <div class="card-title">Grafana</div>
+                <div class="card-description">Dashboards de métricas y monitoreo de rendimiento del sistema y infraestructura.</div>
+                <div class="card-status status-starting" id="grafana-status">🟡 Iniciando</div>
+            </a>
+
+            <a href="#" onclick="showWazuhInfo()" class="dashboard-card wazuh">
+                <div class="card-icon">🔐</div>
+                <div class="card-title">Wazuh Manager</div>
+                <div class="card-description">Sistema de detección de intrusiones y monitoreo de integridad de archivos.</div>
+                <div class="card-status status-starting" id="wazuh-status">🟡 Configurando</div>
+            </a>
+
+            <a href="#" onclick="showSuricataInfo()" class="dashboard-card suricata">
+                <div class="card-icon">🌐</div>
+                <div class="card-title">Suricata IDS</div>
+                <div class="card-description">Sistema de detección y prevención de intrusiones de red en tiempo real.</div>
+                <div class="card-status status-starting" id="suricata-status">🟡 Configurando</div>
+            </a>
+
+            <a href="http://localhost" target="_blank" class="dashboard-card nginx">
+                <div class="card-icon">⚡</div>
+                <div class="card-title">Nginx Proxy</div>
+                <div class="card-description">Proxy web que unifica el acceso a todas las interfaces del sistema SIEM.</div>
+                <div class="card-status status-starting" id="nginx-status">🟡 Configurando</div>
+            </a>
+        </div>
+
+        <div class="system-status">
+            <h2 style="text-align: center; margin-bottom: 20px; color: #333;">📋 Estado del Sistema</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-value" style="color: #28a745;" id="services-online">3</div>
+                    <div class="status-label">Servicios En Línea</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-value" style="color: #ffc107;" id="services-starting">5</div>
+                    <div class="status-label">Servicios Iniciando</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-value" style="color: #dc3545;" id="services-offline">0</div>
+                    <div class="status-label">Servicios Offline</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-value" style="color: #17a2b8;" id="total-containers">11</div>
+                    <div class="status-label">Total Contenedores</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Función para verificar el estado de los servicios
+        async function checkServiceStatus() {
+            const services = [
+                { name: 'elasticsearch', url: 'http://localhost:9200', element: 'elasticsearch-status' },
+                { name: 'kibana', url: 'http://localhost:5601', element: 'kibana-status' },
+                { name: 'grafana', url: 'http://localhost:3000', element: 'grafana-status' }
+            ];
+
+            for (const service of services) {
+                try {
+                    const response = await fetch(service.url, { mode: 'no-cors' });
+                    updateServiceStatus(service.element, 'online');
+                } catch (error) {
+                    // En modo no-cors, cualquier respuesta indica que el servicio está disponible
+                    updateServiceStatus(service.element, 'starting');
+                }
+            }
+        }
+
+        function updateServiceStatus(elementId, status) {
+            const element = document.getElementById(elementId);
+            if (status === 'online') {
+                element.className = 'card-status status-online';
+                element.textContent = '🟢 En Línea';
+            } else if (status === 'starting') {
+                element.className = 'card-status status-starting';
+                element.textContent = '🟡 Iniciando';
+            } else {
+                element.className = 'card-status status-offline';
+                element.textContent = '🔴 Offline';
+            }
+        }
+
+        function showWazuhInfo() {
+            alert('Wazuh Manager está configurándose. Una vez completado, estará disponible para monitoreo de integridad de archivos y detección de amenazas.');
+        }
+
+        function showSuricataInfo() {
+            alert('Suricata IDS está configurándose. Una vez completado, monitoreará el tráfico de red en busca de amenazas e intrusiones.');
+        }
+
+        // Verificar estado cada 30 segundos
+        setInterval(checkServiceStatus, 30000);
+        
+        // Verificar estado inicial
+        checkServiceStatus();
+
+        // Actualizar timestamp
+        setInterval(() => {
+            const now = new Date();
+            document.title = `SIEM Dashboard - ${now.toLocaleTimeString()}`;
+        }, 1000);
+    </script>
+</body>
+</html>

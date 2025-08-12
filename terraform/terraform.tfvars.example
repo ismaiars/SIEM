@@ -1,0 +1,427 @@
+# =============================================================================
+# Terraform Variables Example for SIEM OpenSource PyMES
+# =============================================================================
+# Copy this file to terraform.tfvars and customize the values for your deployment
+# =============================================================================
+
+# =============================================================================
+# GENERAL CONFIGURATION
+# =============================================================================
+
+# Cloud provider to deploy to (aws, azure, gcp, kubernetes)
+cloud_provider = "aws"
+
+# Environment name (dev, staging, prod)
+environment = "prod"
+
+# Project name for resource naming (lowercase, alphanumeric, hyphens only)
+project_name = "siem-pymes"
+
+# Organization information
+organization = "MyCompany"
+owner = "security-team"
+contact_email = "security@mycompany.com"
+
+# =============================================================================
+# CLOUD PROVIDER SPECIFIC CONFIGURATION
+# =============================================================================
+
+# AWS Configuration
+aws_region = "us-west-2"
+aws_profile = "default"
+# aws_account_id = "123456789012"
+
+# Azure Configuration (uncomment if using Azure)
+# azure_location = "West US 2"
+# azure_subscription_id = "your-subscription-id"
+# azure_tenant_id = "your-tenant-id"
+
+# GCP Configuration (uncomment if using GCP)
+# gcp_project = "your-gcp-project-id"
+# gcp_region = "us-west1"
+# gcp_zone = "us-west1-a"
+
+# Kubernetes Configuration (uncomment if using Kubernetes)
+# kubernetes_namespace = "siem-system"
+# kubernetes_config_path = "~/.kube/config"
+# kubernetes_context = "my-cluster"
+
+# =============================================================================
+# INFRASTRUCTURE CONFIGURATION
+# =============================================================================
+
+# Instance types for different cloud providers
+instance_type = {
+  aws   = "t3.xlarge"      # 4 vCPU, 16 GB RAM - Good for production
+  azure = "Standard_D4s_v3" # 4 vCPU, 16 GB RAM
+  gcp   = "n1-standard-4"   # 4 vCPU, 15 GB RAM
+}
+
+# For development/testing, use smaller instances:
+# instance_type = {
+#   aws   = "t3.large"       # 2 vCPU, 8 GB RAM
+#   azure = "Standard_D2s_v3" # 2 vCPU, 8 GB RAM
+#   gcp   = "n1-standard-2"   # 2 vCPU, 7.5 GB RAM
+# }
+
+# Number of SIEM nodes (1-10)
+node_count = 3
+
+# Disk size in GB for each node (50-1000)
+disk_size = 100
+
+# Disk types for different cloud providers
+disk_type = {
+  aws   = "gp3"          # General Purpose SSD
+  azure = "Premium_LRS"  # Premium SSD
+  gcp   = "pd-ssd"       # Persistent SSD
+}
+
+# Auto scaling configuration
+enable_auto_scaling = true
+min_nodes = 1
+max_nodes = 6
+
+# =============================================================================
+# NETWORK CONFIGURATION
+# =============================================================================
+
+# VPC CIDR block
+vpc_cidr = "10.0.0.0/16"
+
+# Subnet CIDR blocks
+public_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+private_subnet_cidrs = ["10.0.11.0/24", "10.0.12.0/24", "10.0.13.0/24"]
+
+# CIDR blocks allowed to access SIEM (customize for your organization)
+allowed_cidr_blocks = [
+  "10.0.0.0/8",      # Private networks
+  "172.16.0.0/12",   # Private networks
+  "192.168.0.0/16",  # Private networks
+  # "203.0.113.0/24", # Add your public IP ranges here
+]
+
+# Network features
+enable_nat_gateway = true
+enable_vpn_gateway = false
+enable_flow_logs = true
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+
+# SSL certificate ARN (AWS) - obtain from AWS Certificate Manager
+# ssl_certificate_arn = "arn:aws:acm:us-west-2:123456789012:certificate/12345678-1234-1234-1234-123456789012"
+
+# Domain name for SIEM access
+# domain_name = "siem.mycompany.com"
+
+# Security features
+enable_waf = true
+enable_ddos_protection = true
+enable_encryption_at_rest = true
+enable_encryption_in_transit = true
+enable_secrets_manager = true
+
+# KMS key ID for encryption (leave empty to create new key)
+# kms_key_id = "arn:aws:kms:us-west-2:123456789012:key/12345678-1234-1234-1234-123456789012"
+
+# =============================================================================
+# SIEM COMPONENT CONFIGURATION
+# =============================================================================
+
+# Component versions (use stable versions for production)
+elasticsearch_version = "8.11.0"
+kibana_version = "8.11.0"
+wazuh_version = "4.7.0"
+logstash_version = "8.11.0"
+suricata_version = "7.0.2"
+grafana_version = "10.2.0"
+prometheus_version = "v2.47.0"
+postgres_version = "15"
+redis_version = "7-alpine"
+
+# Elasticsearch configuration
+elasticsearch_heap_size = "2g"  # Adjust based on available memory
+elasticsearch_cluster_name = "siem-cluster"
+
+# Logstash configuration
+logstash_heap_size = "1g"  # Adjust based on available memory
+
+# =============================================================================
+# MONITORING AND ALERTING
+# =============================================================================
+
+# Enable monitoring components
+enable_monitoring = true
+enable_prometheus = true
+enable_grafana = true
+enable_alertmanager = true
+enable_elastalert = true
+
+# Monitoring data retention
+monitoring_retention_days = 30
+
+# Alert configuration
+alert_email = "alerts@mycompany.com"
+# slack_webhook_url = "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+# pagerduty_integration_key = "your-pagerduty-integration-key"
+
+# =============================================================================
+# BACKUP AND DISASTER RECOVERY
+# =============================================================================
+
+# Backup configuration
+enable_backup = true
+backup_retention_days = 30
+backup_schedule = "0 2 * * *"  # Daily at 2 AM UTC
+
+# Cross-region backup (for critical environments)
+enable_cross_region_backup = false
+# backup_region = "us-east-1"
+
+# Point-in-time recovery
+enable_point_in_time_recovery = true
+
+# =============================================================================
+# DATA RETENTION AND COMPLIANCE
+# =============================================================================
+
+# Log retention policies
+log_retention_days = 90
+audit_log_retention_days = 365
+
+# Compliance configuration
+enable_compliance_mode = false
+# compliance_frameworks = ["GDPR", "HIPAA", "PCI-DSS"]
+
+# Data protection
+enable_data_encryption = true
+enable_audit_logging = true
+
+# =============================================================================
+# PERFORMANCE AND SCALING
+# =============================================================================
+
+# Performance monitoring
+enable_performance_monitoring = true
+
+# Alert thresholds (percentage)
+cpu_threshold = 80
+memory_threshold = 80
+disk_threshold = 85
+network_threshold = 80
+
+# Auto-remediation (use with caution)
+enable_auto_remediation = false
+
+# =============================================================================
+# TERRAFORM STATE MANAGEMENT
+# =============================================================================
+
+# S3 bucket for Terraform state (create manually before deployment)
+# terraform_state_bucket = "my-terraform-state-bucket"
+# terraform_lock_table = "my-terraform-lock-table"
+terraform_state_key = "siem/terraform.tfstate"
+enable_state_encryption = true
+
+# =============================================================================
+# DEVELOPMENT AND TESTING
+# =============================================================================
+
+# Development features (disable in production)
+enable_debug_mode = false
+enable_test_data = false
+test_data_volume = "low"
+enable_development_tools = false
+
+# =============================================================================
+# COST OPTIMIZATION
+# =============================================================================
+
+# Cost optimization features
+enable_cost_optimization = true
+
+# Spot instances (use with caution in production)
+enable_spot_instances = false
+spot_instance_percentage = 50
+
+# Scheduled scaling (for non-24/7 environments)
+enable_scheduled_scaling = false
+business_hours_start = "08:00"
+business_hours_end = "18:00"
+
+# =============================================================================
+# RESOURCE TAGGING
+# =============================================================================
+
+# Standard tags applied to all resources
+tags = {
+  Project     = "SIEM-PyMES"
+  Environment = "production"
+  Owner       = "security-team"
+  Purpose     = "security-monitoring"
+  CostCenter  = "security"
+  Compliance  = "required"
+  Backup      = "required"
+  Monitoring  = "enabled"
+}
+
+# Additional custom tags
+additional_tags = {
+  Department = "IT Security"
+  Application = "SIEM"
+  # BusinessUnit = "Corporate"
+  # DataClassification = "Confidential"
+}
+
+# =============================================================================
+# FEATURE FLAGS
+# =============================================================================
+
+# Experimental and optional features
+feature_flags = {
+  enable_machine_learning     = false  # Requires additional resources
+  enable_threat_intelligence  = true   # Recommended for production
+  enable_user_behavior_analytics = false  # Experimental
+  enable_network_segmentation = true   # Recommended for security
+  enable_zero_trust          = false  # Advanced security model
+  enable_cloud_security      = true   # Cloud-specific monitoring
+  enable_container_security  = true   # Container monitoring
+  enable_api_security        = true   # API monitoring
+}
+
+# =============================================================================
+# INTEGRATION CONFIGURATION
+# =============================================================================
+
+# External SIEM/Security tool integrations
+external_integrations = {
+  enable_splunk_integration    = false
+  enable_qradar_integration   = false
+  enable_sentinel_integration = false
+  enable_crowdstrike_integration = false
+  enable_carbon_black_integration = false
+  enable_okta_integration     = false
+  enable_ad_integration       = false
+}
+
+# API keys for threat intelligence services (keep secure)
+# api_keys = {
+#   virustotal_api_key = "your-virustotal-api-key"
+#   shodan_api_key     = "your-shodan-api-key"
+#   misp_api_key       = "your-misp-api-key"
+#   otx_api_key        = "your-otx-api-key"
+# }
+
+# =============================================================================
+# CUSTOM CONFIGURATION
+# =============================================================================
+
+# Custom configuration parameters
+custom_config = {
+  # log_level = "INFO"
+  # max_connections = 1000
+  # custom_setting = "value"
+}
+
+# Custom scripts to run during deployment
+custom_scripts = [
+  # "scripts/custom-setup.sh",
+  # "scripts/organization-config.sh"
+]
+
+# Custom security rules and policies
+custom_rules = {
+  # "custom_rule_1" = "rule definition"
+  # "custom_rule_2" = "rule definition"
+}
+
+# Custom dashboard configurations
+custom_dashboards = [
+  # "dashboards/custom-security-dashboard.json",
+  # "dashboards/custom-performance-dashboard.json"
+]
+
+# =============================================================================
+# ENVIRONMENT-SPECIFIC EXAMPLES
+# =============================================================================
+
+# Development Environment Example:
+# environment = "dev"
+# node_count = 1
+# instance_type = {
+#   aws   = "t3.medium"
+#   azure = "Standard_B2s"
+#   gcp   = "n1-standard-1"
+# }
+# disk_size = 50
+# enable_backup = false
+# enable_monitoring = false
+# log_retention_days = 7
+
+# Staging Environment Example:
+# environment = "staging"
+# node_count = 2
+# instance_type = {
+#   aws   = "t3.large"
+#   azure = "Standard_D2s_v3"
+#   gcp   = "n1-standard-2"
+# }
+# disk_size = 75
+# backup_retention_days = 7
+# log_retention_days = 30
+
+# Production Environment Example:
+# environment = "prod"
+# node_count = 3
+# instance_type = {
+#   aws   = "t3.xlarge"
+#   azure = "Standard_D4s_v3"
+#   gcp   = "n1-standard-4"
+# }
+# disk_size = 200
+# enable_cross_region_backup = true
+# backup_retention_days = 90
+# log_retention_days = 365
+# enable_compliance_mode = true
+# compliance_frameworks = ["PCI-DSS", "SOX"]
+
+# =============================================================================
+# NOTES AND RECOMMENDATIONS
+# =============================================================================
+
+# IMPORTANT NOTES:
+# 1. Review and customize allowed_cidr_blocks for your network
+# 2. Obtain SSL certificates before enabling HTTPS
+# 3. Configure backup storage location and retention policies
+# 4. Set up monitoring and alerting endpoints
+# 5. Review compliance requirements for your organization
+# 6. Test disaster recovery procedures regularly
+# 7. Monitor costs and optimize resource usage
+# 8. Keep component versions updated for security
+# 9. Configure log retention based on compliance requirements
+# 10. Set up proper access controls and authentication
+
+# SECURITY RECOMMENDATIONS:
+# - Use strong, unique passwords for all services
+# - Enable MFA where possible
+# - Regularly rotate API keys and certificates
+# - Monitor access logs and audit trails
+# - Implement network segmentation
+# - Use encryption for data at rest and in transit
+# - Regular security assessments and penetration testing
+# - Keep all components updated with latest security patches
+
+# PERFORMANCE RECOMMENDATIONS:
+# - Monitor resource utilization and scale as needed
+# - Optimize Elasticsearch and Logstash heap sizes
+# - Configure appropriate log retention policies
+# - Use SSD storage for better performance
+# - Monitor network bandwidth and latency
+# - Implement log parsing optimization
+# - Regular performance tuning and optimization
+
+# =============================================================================
+# END OF CONFIGURATION
+# =============================================================================

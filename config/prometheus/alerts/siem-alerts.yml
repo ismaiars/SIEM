@@ -1,0 +1,430 @@
+# =============================================================================
+# SIEM Infrastructure Alerting Rules for Prometheus
+# =============================================================================
+# This file contains alerting rules for monitoring the SIEM infrastructure
+# including service availability, performance, security events, and capacity.
+# =============================================================================
+
+groups:
+  # =============================================================================
+  # INFRASTRUCTURE ALERTS
+  # =============================================================================
+  - name: siem.infrastructure
+    interval: 30s
+    rules:
+      # Service Down Alerts
+      - alert: ElasticsearchDown
+        expr: up{job="elasticsearch"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: elasticsearch
+          category: infrastructure
+        annotations:
+          summary: "Elasticsearch is down"
+          description: "Elasticsearch has been down for more than 1 minute. SIEM data ingestion and search capabilities are affected."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/elasticsearch-down"
+
+      - alert: KibanaDown
+        expr: up{job="kibana"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          service: kibana
+          category: infrastructure
+        annotations:
+          summary: "Kibana is down"
+          description: "Kibana has been down for more than 2 minutes. SIEM dashboard access is unavailable."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/kibana-down"
+
+      - alert: WazuhManagerDown
+        expr: up{job="wazuh-manager"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: wazuh-manager
+          category: infrastructure
+        annotations:
+          summary: "Wazuh Manager is down"
+          description: "Wazuh Manager has been down for more than 1 minute. Security monitoring and agent management are affected."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/wazuh-manager-down"
+
+      - alert: SuricataDown
+        expr: up{job="suricata"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: suricata
+          category: infrastructure
+        annotations:
+          summary: "Suricata IDS/IPS is down"
+          description: "Suricata has been down for more than 1 minute. Network intrusion detection is disabled."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/suricata-down"
+
+      - alert: LogstashDown
+        expr: up{job="logstash"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          service: logstash
+          category: infrastructure
+        annotations:
+          summary: "Logstash is down"
+          description: "Logstash has been down for more than 2 minutes. Log processing pipeline is affected."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/logstash-down"
+
+      - alert: GrafanaDown
+        expr: up{job="grafana"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: grafana
+          category: infrastructure
+        annotations:
+          summary: "Grafana is down"
+          description: "Grafana has been down for more than 5 minutes. Monitoring dashboards are unavailable."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/grafana-down"
+
+  # =============================================================================
+  # PERFORMANCE ALERTS
+  # =============================================================================
+  - name: siem.performance
+    interval: 30s
+    rules:
+      # CPU Usage Alerts
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is above 80% for more than 5 minutes on {{ $labels.instance }}."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/high-cpu"
+
+      - alert: CriticalCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 95
+        for: 2m
+        labels:
+          severity: critical
+          category: performance
+        annotations:
+          summary: "Critical CPU usage detected"
+          description: "CPU usage is above 95% for more than 2 minutes on {{ $labels.instance }}."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/critical-cpu"
+
+      # Memory Usage Alerts
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is above 80% for more than 5 minutes on {{ $labels.instance }}."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/high-memory"
+
+      - alert: CriticalMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+          category: performance
+        annotations:
+          summary: "Critical memory usage detected"
+          description: "Memory usage is above 95% for more than 2 minutes on {{ $labels.instance }}."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/critical-memory"
+
+      # Disk Usage Alerts
+      - alert: HighDiskUsage
+        expr: (1 - (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"})) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "High disk usage detected"
+          description: "Disk usage is above 80% for more than 5 minutes on {{ $labels.instance }} ({{ $labels.mountpoint }})."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/high-disk"
+
+      - alert: CriticalDiskUsage
+        expr: (1 - (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"})) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+          category: performance
+        annotations:
+          summary: "Critical disk usage detected"
+          description: "Disk usage is above 95% for more than 2 minutes on {{ $labels.instance }} ({{ $labels.mountpoint }})."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/critical-disk"
+
+      # Elasticsearch Performance
+      - alert: ElasticsearchHighHeapUsage
+        expr: elasticsearch_jvm_memory_used_bytes{area="heap"} / elasticsearch_jvm_memory_max_bytes{area="heap"} * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: elasticsearch
+          category: performance
+        annotations:
+          summary: "Elasticsearch high heap usage"
+          description: "Elasticsearch heap usage is above 80% for more than 5 minutes."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/elasticsearch-heap"
+
+      - alert: ElasticsearchSlowQueries
+        expr: rate(elasticsearch_indices_search_query_time_seconds[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: elasticsearch
+          category: performance
+        annotations:
+          summary: "Elasticsearch slow queries detected"
+          description: "Elasticsearch query time is above 1 second for more than 5 minutes."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/elasticsearch-slow-queries"
+
+  # =============================================================================
+  # SECURITY ALERTS
+  # =============================================================================
+  - name: siem.security
+    interval: 30s
+    rules:
+      # Authentication Failures
+      - alert: HighAuthenticationFailures
+        expr: increase(wazuh_authentication_failures_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+          category: security
+          type: authentication
+        annotations:
+          summary: "High authentication failures detected"
+          description: "More than 10 authentication failures in the last 5 minutes."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/auth-failures"
+
+      - alert: CriticalAuthenticationFailures
+        expr: increase(wazuh_authentication_failures_total[5m]) > 50
+        for: 1m
+        labels:
+          severity: critical
+          category: security
+          type: authentication
+        annotations:
+          summary: "Critical authentication failures detected"
+          description: "More than 50 authentication failures in the last 5 minutes. Possible brute force attack."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/brute-force"
+
+      # Intrusion Detection
+      - alert: SuricataHighAlerts
+        expr: increase(suricata_alerts_total[5m]) > 20
+        for: 1m
+        labels:
+          severity: warning
+          category: security
+          type: intrusion
+        annotations:
+          summary: "High number of Suricata alerts"
+          description: "More than 20 Suricata alerts in the last 5 minutes."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/suricata-alerts"
+
+      - alert: SuricataCriticalAlerts
+        expr: increase(suricata_alerts_total{severity="critical"}[5m]) > 5
+        for: 1m
+        labels:
+          severity: critical
+          category: security
+          type: intrusion
+        annotations:
+          summary: "Critical Suricata alerts detected"
+          description: "More than 5 critical Suricata alerts in the last 5 minutes."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/critical-intrusion"
+
+      # Malware Detection
+      - alert: MalwareDetected
+        expr: increase(wazuh_malware_detected_total[1m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          category: security
+          type: malware
+        annotations:
+          summary: "Malware detected"
+          description: "Malware has been detected by Wazuh."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/malware-response"
+
+      # File Integrity Monitoring
+      - alert: CriticalFileModified
+        expr: increase(wazuh_fim_critical_files_modified_total[1m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          category: security
+          type: file_integrity
+        annotations:
+          summary: "Critical file modified"
+          description: "A critical system file has been modified."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/file-integrity"
+
+      # Privilege Escalation
+      - alert: PrivilegeEscalation
+        expr: increase(wazuh_privilege_escalation_total[1m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          category: security
+          type: privilege_escalation
+        annotations:
+          summary: "Privilege escalation detected"
+          description: "Potential privilege escalation activity detected."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/privilege-escalation"
+
+  # =============================================================================
+  # CAPACITY ALERTS
+  # =============================================================================
+  - name: siem.capacity
+    interval: 60s
+    rules:
+      # Log Ingestion Rate
+      - alert: HighLogIngestionRate
+        expr: rate(logstash_events_in_total[5m]) > 10000
+        for: 5m
+        labels:
+          severity: warning
+          category: capacity
+        annotations:
+          summary: "High log ingestion rate"
+          description: "Log ingestion rate is above 10,000 events per second for more than 5 minutes."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/high-ingestion"
+
+      # Elasticsearch Index Size
+      - alert: ElasticsearchIndexSizeGrowth
+        expr: increase(elasticsearch_indices_store_size_bytes[1h]) > 10737418240  # 10GB
+        for: 0m
+        labels:
+          severity: warning
+          service: elasticsearch
+          category: capacity
+        annotations:
+          summary: "Elasticsearch index growing rapidly"
+          description: "Elasticsearch index has grown by more than 10GB in the last hour."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/index-growth"
+
+      # Queue Sizes
+      - alert: LogstashQueueBacklog
+        expr: logstash_queue_events > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: logstash
+          category: capacity
+        annotations:
+          summary: "Logstash queue backlog"
+          description: "Logstash queue has more than 1000 events for more than 5 minutes."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/logstash-backlog"
+
+      # Agent Connectivity
+      - alert: WazuhAgentDisconnected
+        expr: wazuh_agents_disconnected > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: wazuh-manager
+          category: capacity
+        annotations:
+          summary: "Multiple Wazuh agents disconnected"
+          description: "More than 5 Wazuh agents are disconnected for more than 5 minutes."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/agent-connectivity"
+
+  # =============================================================================
+  # DATA QUALITY ALERTS
+  # =============================================================================
+  - name: siem.data_quality
+    interval: 60s
+    rules:
+      # Missing Data
+      - alert: NoLogsReceived
+        expr: rate(logstash_events_in_total[10m]) == 0
+        for: 10m
+        labels:
+          severity: critical
+          category: data_quality
+        annotations:
+          summary: "No logs received"
+          description: "No logs have been received by Logstash for more than 10 minutes."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/no-logs"
+
+      # Parse Failures
+      - alert: HighParseFailures
+        expr: rate(logstash_events_failed_total[5m]) / rate(logstash_events_in_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          category: data_quality
+        annotations:
+          summary: "High log parse failure rate"
+          description: "More than 10% of logs are failing to parse for more than 5 minutes."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/parse-failures"
+
+      # Elasticsearch Indexing Failures
+      - alert: ElasticsearchIndexingFailures
+        expr: rate(elasticsearch_indices_indexing_index_failed_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: elasticsearch
+          category: data_quality
+        annotations:
+          summary: "Elasticsearch indexing failures"
+          description: "More than 10 indexing failures per second for more than 5 minutes."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/indexing-failures"
+
+  # =============================================================================
+  # COMPLIANCE ALERTS
+  # =============================================================================
+  - name: siem.compliance
+    interval: 300s  # 5 minutes
+    rules:
+      # Data Retention
+      - alert: DataRetentionViolation
+        expr: elasticsearch_indices_docs_count{index=~".*-[0-9]{4}\\.[0-9]{2}\\.[0-9]{2}"} > 0 and on(index) elasticsearch_indices_creation_date < (time() - 2592000)  # 30 days
+        for: 0m
+        labels:
+          severity: warning
+          category: compliance
+          type: data_retention
+        annotations:
+          summary: "Data retention policy violation"
+          description: "Index {{ $labels.index }} is older than 30 days and should be archived or deleted."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/data-retention"
+
+      # Audit Log Completeness
+      - alert: MissingAuditLogs
+        expr: absent_over_time(wazuh_audit_events_total[1h])
+        for: 0m
+        labels:
+          severity: critical
+          category: compliance
+          type: audit
+        annotations:
+          summary: "Missing audit logs"
+          description: "No audit events have been received in the last hour."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/missing-audit"
+
+      # Backup Status
+      - alert: BackupFailure
+        expr: elasticsearch_snapshot_stats_failed_shards > 0
+        for: 0m
+        labels:
+          severity: critical
+          category: compliance
+          type: backup
+        annotations:
+          summary: "Elasticsearch backup failure"
+          description: "Elasticsearch snapshot has failed shards."
+          runbook_url: "https://docs.siem-pymes.local/runbooks/backup-failure"
+
+# =============================================================================
+# END OF ALERTING RULES
+# =============================================================================

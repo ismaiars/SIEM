@@ -1,0 +1,409 @@
+# =============================================================================
+# ElastAlert Configuration for SIEM OpenSource PyMES
+# =============================================================================
+# This configuration file defines the main settings for ElastAlert,
+# including Elasticsearch connection, rule folder, and alerting settings.
+# =============================================================================
+
+# Elasticsearch connection settings
+es_host: elasticsearch
+es_port: 9200
+es_username: elastic
+es_password: ${ELASTIC_PASSWORD}
+use_ssl: true
+verify_certs: false
+ssl_show_warn: false
+
+# ElastAlert settings
+rules_folder: /opt/elastalert/rules
+run_every:
+  minutes: 1
+
+buffer_time:
+  minutes: 15
+
+# Elasticsearch index for ElastAlert metadata
+writeback_index: elastalert_status
+writeback_alias: elastalert_alerts
+
+# Alert time limit
+alert_time_limit:
+  days: 2
+
+# Logging configuration
+logging:
+  version: 1
+  incremental: false
+  disable_existing_loggers: false
+  formatters:
+    logline:
+      format: '%(asctime)s %(levelname)s %(name)s %(message)s'
+      datefmt: '%Y-%m-%d %H:%M:%S'
+  handlers:
+    console:
+      class: logging.StreamHandler
+      formatter: logline
+      level: INFO
+      stream: ext://sys.stdout
+    file:
+      class: logging.handlers.RotatingFileHandler
+      formatter: logline
+      level: INFO
+      filename: /opt/elastalert/logs/elastalert.log
+      maxBytes: 10485760
+      backupCount: 5
+  loggers:
+    elastalert:
+      level: INFO
+      handlers: [console, file]
+      propagate: false
+    elasticsearch:
+      level: WARNING
+      handlers: [console, file]
+      propagate: false
+    requests:
+      level: WARNING
+      handlers: [console, file]
+      propagate: false
+  root:
+    level: INFO
+    handlers: [console, file]
+
+# Email settings (if using email alerts)
+smtp_host: ${SMTP_HOST:-localhost}
+smtp_port: ${SMTP_PORT:-587}
+smtp_ssl: ${SMTP_SSL:-false}
+from_addr: ${SMTP_FROM:-siem@company.com}
+smtp_auth_file: /opt/elastalert/smtp_auth.yml
+
+# Slack settings (if using Slack alerts)
+slack_webhook_url: ${SLACK_WEBHOOK_URL:-}
+slack_channel_override: ${SLACK_CHANNEL:-#security-alerts}
+slack_username_override: ${SLACK_USERNAME:-ElastAlert}
+
+# Microsoft Teams settings (if using Teams alerts)
+ms_teams_webhook_url: ${TEAMS_WEBHOOK_URL:-}
+
+# PagerDuty settings (if using PagerDuty alerts)
+pagerduty_service_key: ${PAGERDUTY_SERVICE_KEY:-}
+
+# Jira settings (if using Jira alerts)
+jira_server: ${JIRA_SERVER:-}
+jira_user: ${JIRA_USER:-}
+jira_password: ${JIRA_PASSWORD:-}
+jira_project: ${JIRA_PROJECT:-SEC}
+jira_issue_type: ${JIRA_ISSUE_TYPE:-Bug}
+
+# Custom alert settings
+alert_text_type: alert_text_only
+alert_text_args:
+  - rule_name
+  - timestamp
+  - match_body
+
+# Suppress duplicate alerts
+realert:
+  minutes: 5
+
+# Maximum query size
+max_query_size: 10000
+
+# Scroll settings for large result sets
+scroll_keepalive: 30s
+
+# Thread pool settings
+thread_pool_size: 5
+
+# Custom enhancement modules
+enhancement:
+  - "elastalert_modules.enhancement.DropMatchException"
+
+# Custom alert modules
+alerter:
+  - "elastalert_modules.alerters.CustomSlackAlerter"
+  - "elastalert_modules.alerters.CustomEmailAlerter"
+
+# Timezone
+timezone: UTC
+
+# Scan subdirectories for rules
+scan_subdirectories: true
+
+# Rule configuration validation
+validate_rules: true
+
+# Disable SSL warnings
+disable_ssl_warnings: true
+
+# Custom fields to include in alerts
+include:
+  - "@timestamp"
+  - "agent.name"
+  - "agent.ip"
+  - "rule.description"
+  - "rule.level"
+  - "rule.id"
+  - "data.srcip"
+  - "data.dstip"
+  - "data.srcport"
+  - "data.dstport"
+  - "data.protocol"
+  - "data.action"
+  - "location"
+  - "full_log"
+
+# Global alert configuration
+global_alert_config:
+  alert_subject: "SIEM Alert: {0}"
+  alert_subject_args:
+    - rule.description
+  
+  alert_text: |
+    Security Alert Detected!
+    
+    Rule: {0}
+    Severity: {1}
+    Agent: {2}
+    Time: {3}
+    
+    Description: {4}
+    
+    Source IP: {5}
+    Destination IP: {6}
+    
+    Full Log:
+    {7}
+    
+    Dashboard: https://localhost:5601/app/discover
+    
+  alert_text_args:
+    - rule.description
+    - rule.level
+    - agent.name
+    - "@timestamp"
+    - rule.description
+    - data.srcip
+    - data.dstip
+    - full_log
+
+# Index patterns to monitor
+index_patterns:
+  - "wazuh-alerts-*"
+  - "suricata-*"
+  - "filebeat-*"
+  - "winlogbeat-*"
+  - "auditbeat-*"
+
+# Custom filters
+global_filters:
+  - terms:
+      rule.level: [0, 1, 2]  # Exclude low-level alerts
+
+# Performance tuning
+query_delay:
+  seconds: 30
+
+max_scrolling_count: 990000
+
+# Custom aggregation settings
+aggregation:
+  schedule: '*/5 * * * *'  # Run every 5 minutes
+  
+# Kibana integration
+kibana_url: https://localhost:5601
+kibana_username: ${KIBANA_USERNAME:-elastic}
+kibana_password: ${KIBANA_PASSWORD:-${ELASTIC_PASSWORD}}
+
+# Custom dashboard links
+dashboard_links:
+  security: "https://localhost:5601/app/dashboards#/view/security-overview"
+  compliance: "https://localhost:5601/app/dashboards#/view/compliance-dashboard"
+  network: "https://localhost:5601/app/dashboards#/view/network-monitoring"
+
+# Threat intelligence integration
+threat_intel:
+  enabled: ${THREAT_INTEL_ENABLED:-false}
+  apis:
+    virustotal:
+      enabled: ${VIRUSTOTAL_ENABLED:-false}
+      api_key: ${VIRUSTOTAL_API_KEY:-}
+      rate_limit: 4  # requests per minute
+    
+    shodan:
+      enabled: ${SHODAN_ENABLED:-false}
+      api_key: ${SHODAN_API_KEY:-}
+      rate_limit: 1  # requests per second
+    
+    misp:
+      enabled: ${MISP_ENABLED:-false}
+      url: ${MISP_URL:-}
+      api_key: ${MISP_API_KEY:-}
+      verify_ssl: false
+
+# Machine learning settings
+ml_settings:
+  enabled: ${ML_ENABLED:-false}
+  anomaly_threshold: 0.7
+  models:
+    - user_behavior
+    - network_traffic
+    - file_access
+
+# Compliance frameworks
+compliance:
+  frameworks:
+    - pci_dss
+    - hipaa
+    - gdpr
+    - sox
+    - iso27001
+  
+  reporting:
+    enabled: true
+    schedule: "0 9 * * 1"  # Weekly on Monday at 9 AM
+    recipients:
+      - compliance@company.com
+      - security@company.com
+
+# Custom rule templates
+rule_templates:
+  high_severity:
+    alert:
+      - email
+      - slack
+      - pagerduty
+    priority: 1
+    
+  medium_severity:
+    alert:
+      - email
+      - slack
+    priority: 2
+    
+  low_severity:
+    alert:
+      - email
+    priority: 3
+
+# Data retention for alerts
+alert_retention:
+  days: 90
+
+# Custom enrichment
+enrichment:
+  geoip:
+    enabled: true
+    database_path: /opt/elastalert/geoip/GeoLite2-City.mmdb
+  
+  dns:
+    enabled: true
+    timeout: 5
+  
+  whois:
+    enabled: false
+    timeout: 10
+
+# Performance monitoring
+performance:
+  metrics_enabled: true
+  metrics_port: 9979
+  health_check_enabled: true
+  health_check_port: 9980
+
+# Custom alert suppression
+suppression:
+  rules:
+    - name: "duplicate_failed_login"
+      query:
+        bool:
+          must:
+            - term:
+                rule.groups: "authentication_failed"
+            - term:
+                data.srcip: "{0}"
+      timeframe:
+        minutes: 10
+      max_alerts: 3
+
+# Integration with external systems
+integrations:
+  syslog:
+    enabled: ${SYSLOG_INTEGRATION_ENABLED:-false}
+    host: ${SYSLOG_HOST:-localhost}
+    port: ${SYSLOG_PORT:-514}
+    facility: 16  # local0
+    
+  webhook:
+    enabled: ${WEBHOOK_INTEGRATION_ENABLED:-false}
+    url: ${WEBHOOK_URL:-}
+    method: POST
+    headers:
+      Content-Type: "application/json"
+      Authorization: "Bearer ${WEBHOOK_TOKEN:-}"
+
+# Custom field mappings
+field_mappings:
+  timestamp_field: "@timestamp"
+  source_ip_field: "data.srcip"
+  destination_ip_field: "data.dstip"
+  user_field: "data.user"
+  host_field: "agent.name"
+  severity_field: "rule.level"
+  message_field: "rule.description"
+
+# Rule testing configuration
+testing:
+  enabled: false
+  test_data_path: /opt/elastalert/test_data
+  mock_alerts: false
+
+# Backup and recovery
+backup:
+  enabled: true
+  path: /opt/elastalert/backup
+  retention_days: 30
+  schedule: "0 2 * * *"  # Daily at 2 AM
+
+# Security settings
+security:
+  encrypt_passwords: true
+  password_file: /opt/elastalert/passwords.yml
+  api_key_file: /opt/elastalert/api_keys.yml
+  
+# Custom alert formatting
+formatting:
+  timestamp_format: "%Y-%m-%d %H:%M:%S UTC"
+  timezone_aware: true
+  include_metadata: true
+  
+# Rule validation settings
+validation:
+  strict_mode: false
+  allow_missing_fields: true
+  validate_yaml: true
+  
+# Custom alert routing
+routing:
+  rules:
+    - condition:
+        term:
+          rule.level: [10, 11, 12, 13, 14, 15]
+      alerts:
+        - pagerduty
+        - slack
+        - email
+    
+    - condition:
+        term:
+          rule.level: [7, 8, 9]
+      alerts:
+        - slack
+        - email
+    
+    - condition:
+        term:
+          rule.level: [4, 5, 6]
+      alerts:
+        - email
+
+# End of configuration

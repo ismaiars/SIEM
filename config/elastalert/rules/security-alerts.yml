@@ -1,0 +1,866 @@
+# =============================================================================
+# ElastAlert Security Rules for SIEM OpenSource PyMES
+# =============================================================================
+# This file contains comprehensive security alerting rules for detecting
+# various types of security incidents and threats.
+# =============================================================================
+
+# Rule 1: Multiple Failed Login Attempts
+---
+name: "Multiple Failed Login Attempts"
+type: frequency
+index: wazuh-alerts-*
+num_events: 5
+timeframe:
+  minutes: 5
+
+filter:
+- bool:
+    must:
+      - terms:
+          rule.groups: ["authentication_failed", "authentication_failures"]
+      - range:
+          rule.level:
+            gte: 5
+
+query_key:
+  - data.srcip
+  - data.user
+
+alert:
+  - email
+  - slack
+
+email:
+  - security@company.com
+  - soc@company.com
+
+slack:
+  slack_webhook_url: "${SLACK_WEBHOOK_URL}"
+  slack_channel_override: "#security-alerts"
+  slack_username_override: "SIEM-Alert"
+
+alert_subject: "SECURITY ALERT: Multiple Failed Login Attempts Detected"
+alert_text: |
+  🚨 SECURITY ALERT: Multiple Failed Login Attempts
+  
+  **Details:**
+  - Source IP: {0}
+  - Target User: {1}
+  - Failed Attempts: {2}
+  - Time Window: 5 minutes
+  - Agent: {3}
+  - First Attempt: {4}
+  - Last Attempt: {5}
+  
+  **Recommended Actions:**
+  1. Investigate the source IP for malicious activity
+  2. Check if the target user account is compromised
+  3. Consider blocking the source IP if confirmed malicious
+  4. Review authentication logs for patterns
+  
+  **Dashboard:** https://localhost:5601/app/discover
+  **Grafana:** https://localhost:3000/d/security
+
+alert_text_args:
+  - data.srcip
+  - data.user
+  - num_matches
+  - agent.name
+  - "@timestamp"
+  - "@timestamp"
+
+realert:
+  minutes: 30
+
+---
+# Rule 2: Malware Detection
+name: "Malware Detection Alert"
+type: any
+index: wazuh-alerts-*
+
+filter:
+- bool:
+    should:
+      - terms:
+          rule.groups: ["malware", "rootcheck", "virus"]
+      - terms:
+          rule.id: ["510", "511", "512", "513", "514", "515"]
+      - range:
+          rule.level:
+            gte: 12
+
+alert:
+  - email
+  - slack
+  - pagerduty
+
+email:
+  - security@company.com
+  - incident-response@company.com
+
+slack:
+  slack_webhook_url: "${SLACK_WEBHOOK_URL}"
+  slack_channel_override: "#critical-alerts"
+  slack_username_override: "SIEM-CRITICAL"
+
+pagerduty:
+  pagerduty_service_key: "${PAGERDUTY_SERVICE_KEY}"
+  pagerduty_client_name: "SIEM ElastAlert"
+
+alert_subject: "🚨 CRITICAL: Malware Detected on {0}"
+alert_subject_args:
+  - agent.name
+
+alert_text: |
+  🚨 CRITICAL SECURITY ALERT: MALWARE DETECTED
+  
+  **Incident Details:**
+  - Affected Host: {0}
+  - Host IP: {1}
+  - Detection Time: {2}
+  - Malware Type: {3}
+  - File Path: {4}
+  - Rule ID: {5}
+  - Severity Level: {6}
+  
+  **Immediate Actions Required:**
+  1. ISOLATE the affected system immediately
+  2. Run full antivirus scan
+  3. Check for lateral movement
+  4. Preserve forensic evidence
+  5. Notify incident response team
+  
+  **Full Alert Details:**
+  {7}
+  
+  **Investigation Links:**
+  - Kibana: https://localhost:5601/app/discover
+  - Wazuh: https://localhost:443
+  - Grafana: https://localhost:3000
+
+alert_text_args:
+  - agent.name
+  - agent.ip
+  - "@timestamp"
+  - rule.description
+  - data.file
+  - rule.id
+  - rule.level
+  - full_log
+
+realert:
+  minutes: 0  # Always alert for malware
+
+---
+# Rule 3: Privilege Escalation Attempts
+name: "Privilege Escalation Detection"
+type: any
+index: wazuh-alerts-*
+
+filter:
+- bool:
+    should:
+      - terms:
+          rule.groups: ["privilege_escalation", "elevation"]
+      - match:
+          rule.description: "*sudo*"
+      - match:
+          rule.description: "*privilege*"
+      - terms:
+          rule.id: ["5401", "5402", "5403"]
+      - range:
+          rule.level:
+            gte: 8
+
+alert:
+  - email
+  - slack
+
+email:
+  - security@company.com
+
+slack:
+  slack_webhook_url: "${SLACK_WEBHOOK_URL}"
+  slack_channel_override: "#security-alerts"
+
+alert_subject: "SECURITY ALERT: Privilege Escalation Attempt on {0}"
+alert_subject_args:
+  - agent.name
+
+alert_text: |
+  ⚠️ SECURITY ALERT: Privilege Escalation Attempt
+  
+  **Details:**
+  - Host: {0} ({1})
+  - User: {2}
+  - Time: {3}
+  - Command/Action: {4}
+  - Rule: {5}
+  - Severity: {6}
+  
+  **Investigation Steps:**
+  1. Verify if the privilege escalation was authorized
+  2. Check user's normal access patterns
+  3. Review system logs for suspicious activity
+  4. Validate user identity and session
+  
+  **Raw Log:**
+  {7}
+
+alert_text_args:
+  - agent.name
+  - agent.ip
+  - data.user
+  - "@timestamp"
+  - data.command
+  - rule.description
+  - rule.level
+  - full_log
+
+realert:
+  minutes: 15
+
+---
+# Rule 4: File Integrity Monitoring Critical Changes
+name: "Critical File Integrity Violation"
+type: any
+index: wazuh-alerts-*
+
+filter:
+- bool:
+    must:
+      - terms:
+          rule.groups: ["syscheck", "file_integrity"]
+      - bool:
+          should:
+            - match:
+                data.path: "*/etc/passwd*"
+            - match:
+                data.path: "*/etc/shadow*"
+            - match:
+                data.path: "*/etc/sudoers*"
+            - match:
+                data.path: "*/boot/*"
+            - match:
+                data.path: "*/bin/*"
+            - match:
+                data.path: "*/sbin/*"
+            - match:
+                data.path: "*Windows/System32*"
+            - match:
+                data.path: "*Program Files*"
+      - range:
+          rule.level:
+            gte: 7
+
+alert:
+  - email
+  - slack
+
+email:
+  - security@company.com
+  - compliance@company.com
+
+slack:
+  slack_webhook_url: "${SLACK_WEBHOOK_URL}"
+  slack_channel_override: "#security-alerts"
+
+alert_subject: "FILE INTEGRITY ALERT: Critical System File Modified on {0}"
+alert_subject_args:
+  - agent.name
+
+alert_text: |
+  📁 FILE INTEGRITY ALERT: Critical System File Modified
+  
+  **File Details:**
+  - Host: {0}
+  - File Path: {1}
+  - Action: {2}
+  - Time: {3}
+  - User: {4}
+  - Process: {5}
+  
+  **File Changes:**
+  - Old MD5: {6}
+  - New MD5: {7}
+  - Old Size: {8}
+  - New Size: {9}
+  
+  **Security Implications:**
+  This file modification could indicate:
+  - System compromise
+  - Unauthorized configuration changes
+  - Malware installation
+  - Insider threat activity
+  
+  **Immediate Actions:**
+  1. Verify the legitimacy of the change
+  2. Check change management records
+  3. Investigate the user/process responsible
+  4. Consider restoring from backup if unauthorized
+  
+  **Full Details:**
+  {10}
+
+alert_text_args:
+  - agent.name
+  - data.path
+  - data.mode
+  - "@timestamp"
+  - data.user
+  - data.process
+  - data.md5_before
+  - data.md5_after
+  - data.size_before
+  - data.size_after
+  - full_log
+
+realert:
+  minutes: 5
+
+---
+# Rule 5: Network Intrusion Detection
+name: "Network Intrusion Detected"
+type: frequency
+index: suricata-*
+num_events: 3
+timeframe:
+  minutes: 10
+
+filter:
+- bool:
+    must:
+      - terms:
+          alert.severity: [1, 2]  # High and medium severity
+      - terms:
+          alert.category: ["Attempted Administrator Privilege Gain", "Attempted User Privilege Gain", "Trojan Activity Detected", "A Network Trojan was detected"]
+
+query_key:
+  - src_ip
+  - dest_ip
+
+alert:
+  - email
+  - slack
+
+email:
+  - security@company.com
+  - network-team@company.com
+
+slack:
+  slack_webhook_url: "${SLACK_WEBHOOK_URL}"
+  slack_channel_override: "#network-security"
+
+alert_subject: "NETWORK INTRUSION: Multiple Suspicious Activities from {0}"
+alert_subject_args:
+  - src_ip
+
+alert_text: |
+  🌐 NETWORK INTRUSION ALERT
+  
+  **Network Details:**
+  - Source IP: {0}
+  - Destination IP: {1}
+  - Protocol: {2}
+  - Port: {3}
+  - Alert Count: {4}
+  - Time Window: 10 minutes
+  
+  **Attack Details:**
+  - Category: {5}
+  - Signature: {6}
+  - Severity: {7}
+  - First Seen: {8}
+  - Last Seen: {9}
+  
+  **Geolocation (if available):**
+  - Country: {10}
+  - City: {11}
+  
+  **Response Actions:**
+  1. Block source IP at firewall
+  2. Investigate affected systems
+  3. Check for successful compromises
+  4. Review network logs for lateral movement
+  5. Update IDS signatures if needed
+  
+  **Investigation Tools:**
+  - Suricata Dashboard: https://localhost:3000
+  - Network Analysis: https://localhost:5601
+
+alert_text_args:
+  - src_ip
+  - dest_ip
+  - proto
+  - dest_port
+  - num_matches
+  - alert.category
+  - alert.signature
+  - alert.severity
+  - "@timestamp"
+  - "@timestamp"
+  - geoip.country_name
+  - geoip.city_name
+
+realert:
+  minutes: 20
+
+---
+# Rule 6: Suspicious Process Execution
+name: "Suspicious Process Execution"
+type: any
+index: wazuh-alerts-*
+
+filter:
+- bool:
+    should:
+      - bool:
+          must:
+            - terms:
+                rule.groups: ["windows", "process_creation"]
+            - bool:
+                should:
+                  - match:
+                      data.command: "*powershell*"
+                  - match:
+                      data.command: "*cmd.exe*"
+                  - match:
+                      data.command: "*wscript*"
+                  - match:
+                      data.command: "*cscript*"
+                  - match:
+                      data.command: "*regsvr32*"
+                  - match:
+                      data.command: "*rundll32*"
+      - bool:
+          must:
+            - terms:
+                rule.groups: ["linux", "process"]
+            - bool:
+                should:
+                  - match:
+                      data.command: "*/tmp/*"
+                  - match:
+                      data.command: "*wget*"
+                  - match:
+                      data.command: "*curl*"
+                  - match:
+                      data.command: "*nc *"
+                  - match:
+                      data.command: "*netcat*"
+      - range:
+          rule.level:
+            gte: 6
+
+alert:
+  - email
+  - slack
+
+email:
+  - security@company.com
+
+slack:
+  slack_webhook_url: "${SLACK_WEBHOOK_URL}"
+  slack_channel_override: "#security-alerts"
+
+alert_subject: "SUSPICIOUS PROCESS: Potentially Malicious Execution on {0}"
+alert_subject_args:
+  - agent.name
+
+alert_text: |
+  🔍 SUSPICIOUS PROCESS EXECUTION ALERT
+  
+  **Process Details:**
+  - Host: {0} ({1})
+  - User: {2}
+  - Process: {3}
+  - Command Line: {4}
+  - Parent Process: {5}
+  - Time: {6}
+  
+  **Risk Indicators:**
+  - Rule: {7}
+  - Severity Level: {8}
+  - Process Path: {9}
+  
+  **Analysis Required:**
+  1. Verify if this process execution was authorized
+  2. Check process reputation and digital signatures
+  3. Analyze command line arguments for malicious intent
+  4. Review parent process and execution chain
+  5. Check for network connections from this process
+  
+  **Context:**
+  {10}
+
+alert_text_args:
+  - agent.name
+  - agent.ip
+  - data.user
+  - data.process
+  - data.command
+  - data.parent_process
+  - "@timestamp"
+  - rule.description
+  - rule.level
+  - data.process_path
+  - full_log
+
+realert:
+  minutes: 10
+
+---
+# Rule 7: Data Exfiltration Detection
+name: "Potential Data Exfiltration"
+type: frequency
+index: wazuh-alerts-*
+num_events: 10
+timeframe:
+  minutes: 30
+
+filter:
+- bool:
+    should:
+      - bool:
+          must:
+            - terms:
+                rule.groups: ["file_access", "data_loss"]
+            - bool:
+                should:
+                  - match:
+                      data.file: "*.zip"
+                  - match:
+                      data.file: "*.rar"
+                  - match:
+                      data.file: "*.7z"
+                  - match:
+                      data.file: "*.tar*"
+      - bool:
+          must:
+            - terms:
+                rule.groups: ["network", "ftp", "http"]
+            - range:
+                data.size:
+                  gte: 10485760  # 10MB
+
+query_key:
+  - agent.name
+  - data.user
+
+alert:
+  - email
+  - slack
+
+email:
+  - security@company.com
+  - dpo@company.com  # Data Protection Officer
+
+slack:
+  slack_webhook_url: "${SLACK_WEBHOOK_URL}"
+  slack_channel_override: "#data-protection"
+
+alert_subject: "DATA EXFILTRATION ALERT: Suspicious Data Movement from {0}"
+alert_subject_args:
+  - agent.name
+
+alert_text: |
+  📤 POTENTIAL DATA EXFILTRATION DETECTED
+  
+  **Activity Summary:**
+  - Host: {0}
+  - User: {1}
+  - Event Count: {2}
+  - Time Window: 30 minutes
+  - First Activity: {3}
+  - Last Activity: {4}
+  
+  **Data Movement Details:**
+  - Files Accessed: Multiple archive/large files
+  - Total Size: Potentially significant
+  - Access Pattern: Unusual frequency
+  
+  **Compliance Impact:**
+  - Potential GDPR violation
+  - Data classification review required
+  - Incident reporting may be necessary
+  
+  **Immediate Actions:**
+  1. Investigate user activity and authorization
+  2. Review data classification of accessed files
+  3. Check for external data transfers
+  4. Preserve audit logs and evidence
+  5. Notify Data Protection Officer if confirmed
+  
+  **Investigation Dashboard:**
+  https://localhost:5601/app/discover
+
+alert_text_args:
+  - agent.name
+  - data.user
+  - num_matches
+  - "@timestamp"
+  - "@timestamp"
+
+realert:
+  hours: 2
+
+---
+# Rule 8: Compliance Violation Detection
+name: "Compliance Policy Violation"
+type: any
+index: wazuh-alerts-*
+
+filter:
+- bool:
+    should:
+      - terms:
+          rule.pci_dss: ["1.1.1", "2.2", "8.1", "10.1"]
+      - terms:
+          rule.hipaa: ["164.308", "164.312"]
+      - terms:
+          rule.gdpr: ["Article 32", "Article 25"]
+      - bool:
+          must:
+            - terms:
+                rule.groups: ["policy_violation", "compliance"]
+            - range:
+                rule.level:
+                  gte: 5
+
+alert:
+  - email
+
+email:
+  - compliance@company.com
+  - security@company.com
+  - audit@company.com
+
+alert_subject: "COMPLIANCE VIOLATION: {0} Policy Breach on {1}"
+alert_subject_args:
+  - rule.compliance_framework
+  - agent.name
+
+alert_text: |
+  ⚖️ COMPLIANCE POLICY VIOLATION DETECTED
+  
+  **Violation Details:**
+  - Framework: {0}
+  - Control: {1}
+  - Host: {2}
+  - User: {3}
+  - Time: {4}
+  
+  **Policy Breach:**
+  - Rule: {5}
+  - Description: {6}
+  - Severity: {7}
+  
+  **Compliance Requirements:**
+  - PCI DSS: {8}
+  - HIPAA: {9}
+  - GDPR: {10}
+  - SOX: {11}
+  
+  **Remediation Required:**
+  1. Document the violation in compliance register
+  2. Assess impact on compliance posture
+  3. Implement corrective measures
+  4. Update policies if necessary
+  5. Report to relevant authorities if required
+  
+  **Audit Trail:**
+  {12}
+
+alert_text_args:
+  - rule.compliance_framework
+  - rule.compliance_control
+  - agent.name
+  - data.user
+  - "@timestamp"
+  - rule.id
+  - rule.description
+  - rule.level
+  - rule.pci_dss
+  - rule.hipaa
+  - rule.gdpr
+  - rule.sox
+  - full_log
+
+realert:
+  hours: 24
+
+---
+# Rule 9: Anomalous User Behavior
+name: "Anomalous User Behavior Detection"
+type: frequency
+index: wazuh-alerts-*
+num_events: 20
+timeframe:
+  hours: 1
+
+filter:
+- bool:
+    must:
+      - terms:
+          rule.groups: ["authentication", "user_activity"]
+      - bool:
+          should:
+            - range:
+                "@timestamp":
+                  gte: "now-1h"
+                  lte: "now"
+                  time_zone: "+00:00"
+
+query_key:
+  - data.user
+
+alert:
+  - email
+  - slack
+
+email:
+  - security@company.com
+  - hr@company.com
+
+slack:
+  slack_webhook_url: "${SLACK_WEBHOOK_URL}"
+  slack_channel_override: "#user-behavior"
+
+alert_subject: "ANOMALOUS BEHAVIOR: Unusual Activity Pattern for User {0}"
+alert_subject_args:
+  - data.user
+
+alert_text: |
+  👤 ANOMALOUS USER BEHAVIOR DETECTED
+  
+  **User Activity Analysis:**
+  - User: {0}
+  - Activity Count: {1} events in 1 hour
+  - Normal Pattern: Typically <5 events/hour
+  - Anomaly Score: High
+  
+  **Activity Breakdown:**
+  - Authentication Events: Multiple
+  - File Access Events: Elevated
+  - Network Activity: Unusual
+  - Time Pattern: {2}
+  
+  **Risk Assessment:**
+  - Account Compromise: Possible
+  - Insider Threat: Potential
+  - Automated Activity: Likely
+  
+  **Investigation Steps:**
+  1. Contact user to verify legitimate activity
+  2. Review recent password changes
+  3. Check for concurrent sessions
+  4. Analyze access patterns and locations
+  5. Consider temporary account suspension
+  
+  **User Behavior Dashboard:**
+  https://localhost:3000/d/user-behavior
+
+alert_text_args:
+  - data.user
+  - num_matches
+  - "@timestamp"
+
+realert:
+  hours: 4
+
+---
+# Rule 10: Critical System Service Failure
+name: "Critical System Service Failure"
+type: any
+index: wazuh-alerts-*
+
+filter:
+- bool:
+    should:
+      - bool:
+          must:
+            - terms:
+                rule.groups: ["service", "system"]
+            - bool:
+                should:
+                  - match:
+                      data.service: "*antivirus*"
+                  - match:
+                      data.service: "*firewall*"
+                  - match:
+                      data.service: "*backup*"
+                  - match:
+                      data.service: "*monitoring*"
+                  - match:
+                      data.service: "*security*"
+            - terms:
+                data.status: ["stopped", "failed", "error"]
+      - range:
+          rule.level:
+            gte: 10
+
+alert:
+  - email
+  - slack
+  - pagerduty
+
+email:
+  - security@company.com
+  - operations@company.com
+
+slack:
+  slack_webhook_url: "${SLACK_WEBHOOK_URL}"
+  slack_channel_override: "#critical-alerts"
+
+pagerduty:
+  pagerduty_service_key: "${PAGERDUTY_SERVICE_KEY}"
+
+alert_subject: "🚨 CRITICAL: Security Service Failure on {0}"
+alert_subject_args:
+  - agent.name
+
+alert_text: |
+  🚨 CRITICAL SYSTEM SERVICE FAILURE
+  
+  **Service Details:**
+  - Host: {0}
+  - Service: {1}
+  - Status: {2}
+  - Time: {3}
+  
+  **Security Impact:**
+  - Protection Level: REDUCED
+  - Risk Level: HIGH
+  - Immediate Action: REQUIRED
+  
+  **Affected Security Controls:**
+  - Antivirus Protection
+  - Firewall Rules
+  - Backup Operations
+  - Security Monitoring
+  
+  **Emergency Response:**
+  1. Restart the failed service immediately
+  2. Check service dependencies
+  3. Review system logs for root cause
+  4. Implement compensating controls
+  5. Escalate to on-call engineer
+  
+  **Service Recovery:**
+  - Automatic restart: Attempted
+  - Manual intervention: May be required
+  - Backup systems: Check status
+  
+  **Full Alert:**
+  {4}
+
+alert_text_args:
+  - agent.name
+  - data.service
+  - data.status
+  - "@timestamp"
+  - full_log
+
+realert:
+  minutes: 0  # Always alert for critical service failures

@@ -1,0 +1,298 @@
+# =============================================================================
+# SIEM OpenSource PyMES - Terraform Variables Example
+# =============================================================================
+# Copy this file to terraform.tfvars and customize the values for your environment
+# cp terraform.tfvars.example terraform.tfvars
+
+# =============================================================================
+# GENERAL CONFIGURATION
+# =============================================================================
+project_name = "siem-pymes"
+environment  = "production"  # dev, staging, production
+owner        = "security-team"
+cost_center  = "IT-Security"
+
+# =============================================================================
+# AWS CONFIGURATION
+# =============================================================================
+aws_region  = "us-west-2"
+aws_profile = "default"  # AWS CLI profile to use
+
+# =============================================================================
+# NETWORK CONFIGURATION
+# =============================================================================
+vpc_cidr                = "10.0.0.0/16"
+allowed_cidr_blocks     = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+domain_name             = "siem.yourcompany.com"
+create_route53_zone     = true
+
+# Subnet Configuration
+public_subnet_cidrs   = ["10.0.1.0/24", "10.0.2.0/24"]
+private_subnet_cidrs  = ["10.0.10.0/24", "10.0.20.0/24"]
+database_subnet_cidrs = ["10.0.100.0/24", "10.0.200.0/24"]
+
+# =============================================================================
+# EKS CLUSTER CONFIGURATION
+# =============================================================================
+kubernetes_version = "1.28"
+
+# Node Groups Configuration
+node_instance_types = ["t3.large", "t3.xlarge"]
+node_desired_size   = 3
+node_min_size       = 2
+node_max_size       = 10
+
+# =============================================================================
+# RDS CONFIGURATION (PostgreSQL for Wazuh)
+# =============================================================================
+rds_instance_class    = "db.t3.medium"
+rds_allocated_storage = 100
+rds_max_allocated_storage = 1000
+rds_database_name     = "wazuh"
+rds_username          = "wazuh_admin"
+# Note: RDS password will be auto-generated and stored in AWS Secrets Manager
+
+# =============================================================================
+# REDIS CONFIGURATION (ElastiCache)
+# =============================================================================
+redis_node_type     = "cache.t3.micro"
+redis_num_cache_nodes = 1
+redis_parameter_group_name = "default.redis7"
+
+# =============================================================================
+# MONITORING AND LOGGING
+# =============================================================================
+cloudwatch_log_retention_days = 30
+alert_email                   = "security-alerts@yourcompany.com"
+enable_detailed_monitoring    = true
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+enable_encryption = true
+enable_backup     = true
+backup_retention_period = 7
+
+# =============================================================================
+# SIEM COMPONENT VERSIONS
+# =============================================================================
+elasticsearch_version = "8.11.0"
+kibana_version       = "8.11.0"
+wazuh_version        = "4.7.0"
+logstash_version     = "8.11.0"
+filebeat_version     = "8.11.0"
+suricata_version     = "7.0.2"
+grafana_version      = "10.2.0"
+
+# =============================================================================
+# STORAGE CONFIGURATION
+# =============================================================================
+elasticsearch_storage_size = "100Gi"
+elasticsearch_storage_type = "gp3"
+log_storage_size          = "500Gi"
+log_storage_type          = "gp3"
+
+# =============================================================================
+# PERFORMANCE TUNING
+# =============================================================================
+elasticsearch_heap_size = "2g"
+logstash_heap_size     = "1g"
+elasticsearch_replicas = 1
+elasticsearch_shards   = 1
+
+# =============================================================================
+# HIGH AVAILABILITY
+# =============================================================================
+enable_multi_az           = true
+enable_auto_scaling       = true
+enable_cluster_autoscaler = true
+
+# =============================================================================
+# COMPLIANCE SETTINGS
+# =============================================================================
+enable_compliance_logging = true
+enable_audit_logging      = true
+compliance_standards      = ["PCI-DSS", "SOX", "GDPR"]
+
+# =============================================================================
+# DEVELOPMENT/TESTING
+# =============================================================================
+enable_dev_tools  = false  # Set to true for development environments
+enable_test_data  = false  # Set to true to generate test data
+
+# =============================================================================
+# COST OPTIMIZATION
+# =============================================================================
+enable_spot_instances    = false  # Set to true for cost savings (non-production)
+enable_scheduled_scaling = true   # Scale down during off-hours
+
+# =============================================================================
+# INTEGRATION SETTINGS
+# =============================================================================
+# Slack Integration
+slack_webhook_url = "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+slack_channel     = "#security-alerts"
+
+# Microsoft Teams Integration
+teams_webhook_url = "https://outlook.office.com/webhook/YOUR/TEAMS/WEBHOOK"
+
+# PagerDuty Integration
+pagerduty_integration_key = "your-pagerduty-integration-key"
+
+# Jira Integration
+jira_url      = "https://yourcompany.atlassian.net"
+jira_username = "siem-integration@yourcompany.com"
+jira_project  = "SEC"
+
+# =============================================================================
+# THREAT INTELLIGENCE
+# =============================================================================
+enable_threat_intel_feeds = true
+virustotal_api_key       = "your-virustotal-api-key"
+shodan_api_key           = "your-shodan-api-key"
+
+# =============================================================================
+# MACHINE LEARNING
+# =============================================================================
+enable_ml_features        = true
+ml_node_instance_type     = "ml.t3.medium"
+enable_anomaly_detection  = true
+enable_behavioral_analytics = true
+
+# =============================================================================
+# DATA RETENTION POLICIES
+# =============================================================================
+hot_data_retention_days    = 7    # High-performance storage
+warm_data_retention_days   = 30   # Medium-performance storage
+cold_data_retention_days   = 90   # Low-cost storage
+archive_data_retention_days = 365 # Archive storage
+
+# =============================================================================
+# NETWORK SECURITY
+# =============================================================================
+enable_waf           = true
+enable_ddos_protection = true
+enable_vpc_flow_logs = true
+enable_guardduty     = true
+enable_security_hub  = true
+
+# =============================================================================
+# DISASTER RECOVERY
+# =============================================================================
+enable_cross_region_backup = true
+backup_region             = "us-east-1"
+rpo_hours                 = 4   # Recovery Point Objective
+rto_hours                 = 2   # Recovery Time Objective
+
+# =============================================================================
+# CUSTOM TAGS
+# =============================================================================
+custom_tags = {
+  "Department"   = "IT Security"
+  "Application" = "SIEM"
+  "Criticality" = "High"
+  "Backup"      = "Required"
+  "Monitoring"  = "24x7"
+}
+
+# =============================================================================
+# ADVANCED SECURITY GROUPS
+# =============================================================================
+custom_security_group_rules = {
+  "allow_siem_agents" = {
+    type        = "ingress"
+    from_port   = 1514
+    to_port     = 1515
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/16"]
+    description = "Wazuh agent communication"
+  }
+  "allow_syslog" = {
+    type        = "ingress"
+    from_port   = 514
+    to_port     = 514
+    protocol    = "udp"
+    cidr_blocks = ["10.0.0.0/16"]
+    description = "Syslog ingestion"
+  }
+}
+
+# =============================================================================
+# COMPONENT-SPECIFIC CONFIGURATIONS
+# =============================================================================
+
+# Elasticsearch Configuration
+elasticsearch_config = {
+  "cluster.name"                     = "siem-pymes-cluster"
+  "discovery.type"                   = "single-node"
+  "xpack.security.enabled"           = "true"
+  "xpack.security.transport.ssl.enabled" = "true"
+  "xpack.security.http.ssl.enabled"  = "true"
+}
+
+# Wazuh Configuration
+wazuh_config = {
+  "alerts_log"           = "yes"
+  "logall"              = "no"
+  "logall_json"         = "yes"
+  "email_notification"  = "yes"
+  "smtp_server"         = "smtp.yourcompany.com"
+  "email_from"          = "wazuh@yourcompany.com"
+  "email_to"            = "security-team@yourcompany.com"
+}
+
+# Suricata Configuration
+suricata_config = {
+  "home_net"            = "[10.0.0.0/16,172.16.0.0/12,192.168.0.0/16]"
+  "external_net"        = "!$HOME_NET"
+  "http_servers"        = "$HOME_NET"
+  "smtp_servers"        = "$HOME_NET"
+  "sql_servers"         = "$HOME_NET"
+  "dns_servers"         = "$HOME_NET"
+  "telnet_servers"      = "$HOME_NET"
+  "aim_servers"         = "$EXTERNAL_NET"
+  "dc_servers"          = "$HOME_NET"
+  "dnp3_server"         = "$HOME_NET"
+  "dnp3_client"         = "$HOME_NET"
+  "modbus_client"       = "$HOME_NET"
+  "modbus_server"       = "$HOME_NET"
+  "enip_client"         = "$HOME_NET"
+  "enip_server"         = "$HOME_NET"
+}
+
+# =============================================================================
+# EXAMPLE CONFIGURATIONS FOR DIFFERENT ENVIRONMENTS
+# =============================================================================
+
+# Uncomment and modify for Development Environment
+# environment = "dev"
+# node_desired_size = 1
+# node_min_size = 1
+# node_max_size = 3
+# rds_instance_class = "db.t3.micro"
+# enable_multi_az = false
+# enable_backup = false
+# cloudwatch_log_retention_days = 7
+
+# Uncomment and modify for Staging Environment
+# environment = "staging"
+# node_desired_size = 2
+# node_min_size = 1
+# node_max_size = 5
+# rds_instance_class = "db.t3.small"
+# enable_multi_az = true
+# enable_backup = true
+# cloudwatch_log_retention_days = 14
+
+# Uncomment and modify for Production Environment
+# environment = "production"
+# node_desired_size = 3
+# node_min_size = 2
+# node_max_size = 10
+# rds_instance_class = "db.r5.large"
+# enable_multi_az = true
+# enable_backup = true
+# backup_retention_period = 30
+# cloudwatch_log_retention_days = 90
+# enable_detailed_monitoring = true
+# enable_encryption = true

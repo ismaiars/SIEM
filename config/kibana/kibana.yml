@@ -1,0 +1,291 @@
+# =============================================================================
+# Kibana Configuration for SIEM OpenSource PyMES
+# =============================================================================
+# This configuration file sets up Kibana for a SIEM environment
+# with security, performance, and SIEM-specific optimizations
+# =============================================================================
+
+# =============================================================================
+# SERVER CONFIGURATION
+# =============================================================================
+server.name: "siem-kibana"
+server.host: "0.0.0.0"
+server.port: 5601
+server.basePath: ""
+server.rewriteBasePath: false
+
+# SSL Configuration (DISABLED FOR DEVELOPMENT)
+server.ssl.enabled: false
+# server.ssl.certificate: "/usr/share/kibana/config/certs/kibana/kibana.crt"
+# server.ssl.key: "/usr/share/kibana/config/certs/kibana/kibana.key"
+# server.ssl.certificateAuthorities: ["/usr/share/kibana/config/certs/ca/ca.crt"]
+
+# Server settings
+server.maxPayload: 1048576
+server.keepaliveTimeout: 120000
+server.socketTimeout: 120000
+
+# =============================================================================
+# ELASTICSEARCH CONNECTION
+# =============================================================================
+elasticsearch.hosts: ["http://elasticsearch:9200"]
+# elasticsearch.username: "kibana_system"
+# elasticsearch.password: "${KIBANA_PASSWORD}"
+
+# SSL settings for Elasticsearch connection (DISABLED)
+# elasticsearch.ssl.certificateAuthorities: ["/usr/share/kibana/config/certs/ca/ca.crt"]
+# elasticsearch.ssl.verificationMode: certificate
+
+# Connection settings
+elasticsearch.pingTimeout: 1500
+elasticsearch.requestTimeout: 30000
+elasticsearch.shardTimeout: 30000
+elasticsearch.sniffOnStart: false
+elasticsearch.sniffInterval: false
+elasticsearch.sniffOnConnectionFault: false
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+# Encryption keys (should be 32 characters)
+xpack.encryptedSavedObjects.encryptionKey: "${KIBANA_ENCRYPTION_KEY}"
+xpack.reporting.encryptionKey: "${KIBANA_ENCRYPTION_KEY}"
+xpack.security.encryptionKey: "${KIBANA_ENCRYPTION_KEY}"
+
+# Security settings (DISABLED FOR DEVELOPMENT)
+xpack.security.enabled: false
+# xpack.security.audit.enabled: true
+# xpack.security.session.idleTimeout: "8h"
+# xpack.security.session.lifespan: "24h"
+
+# Login settings
+xpack.security.loginAssistanceMessage: "Welcome to SIEM PyMES - Please use your assigned credentials"
+xpack.security.authc.providers:
+  basic.basic1:
+    order: 0
+    enabled: true
+
+# =============================================================================
+# MONITORING
+# =============================================================================
+monitoring.enabled: true
+monitoring.kibana.collection.enabled: true
+monitoring.kibana.collection.interval: 30000
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+logging.appenders:
+  file:
+    type: file
+    fileName: /usr/share/kibana/logs/kibana.log
+    layout:
+      type: json
+  console:
+    type: console
+    layout:
+      type: pattern
+      pattern: "[%date][%level][%logger] %message"
+
+logging.loggers:
+  - name: root
+    appenders: [file, console]
+    level: info
+  - name: elasticsearch
+    level: warn
+  - name: elasticsearch.query
+    level: warn
+  - name: plugins.security
+    level: info
+
+logging.root.level: info
+
+# =============================================================================
+# KIBANA FEATURES
+# =============================================================================
+# Enable/disable features
+xpack.canvas.enabled: true
+xpack.graph.enabled: true
+xpack.ml.enabled: true
+xpack.monitoring.enabled: true
+xpack.reporting.enabled: true
+xpack.spaces.enabled: true
+xpack.infra.enabled: true
+xpack.apm.enabled: false
+xpack.uptime.enabled: false
+
+# =============================================================================
+# SIEM SPECIFIC CONFIGURATION
+# =============================================================================
+# Security Solution (SIEM) settings
+xpack.securitySolution.enabled: true
+xpack.securitySolution.defaultIndex:
+  - "wazuh-alerts-*"
+  - "suricata-*"
+  - "filebeat-*"
+  - "logstash-*"
+  - "siem-*"
+
+# Timeline settings
+xpack.securitySolution.signalsIndex: ".siem-signals-default"
+xpack.securitySolution.maxTimelineImportExportSize: 10000
+
+# =============================================================================
+# MAPS CONFIGURATION
+# =============================================================================
+xpack.maps.enabled: true
+xpack.maps.showMapsInspectorAdapter: true
+xpack.maps.preserveDrawingBuffer: true
+
+# Map tile service
+map.includeElasticMapsService: true
+map.tilemap.url: "https://tiles.maps.elastic.co/v2/default/{z}/{x}/{y}.png?elastic_tile_service_tos=agree&my_app_name=kibana"
+map.tilemap.options.attribution: "© Elastic Maps Service"
+
+# =============================================================================
+# REPORTING CONFIGURATION
+# =============================================================================
+xpack.reporting.capture.browser.chromium.disableSandbox: true
+xpack.reporting.capture.browser.chromium.proxy.enabled: false
+xpack.reporting.capture.maxAttempts: 3
+xpack.reporting.queue.timeout: 120000
+xpack.reporting.csv.maxSizeBytes: 104857600
+xpack.reporting.csv.scroll.size: 500
+
+# =============================================================================
+# ALERTING CONFIGURATION
+# =============================================================================
+xpack.alerting.enabled: true
+xpack.actions.enabled: true
+xpack.actions.allowedHosts: ["*"]
+xpack.actions.enabledActionTypes:
+  - ".email"
+  - ".slack"
+  - ".webhook"
+  - ".index"
+  - ".server-log"
+
+# =============================================================================
+# MACHINE LEARNING
+# =============================================================================
+xpack.ml.enabled: true
+xpack.ml.ad.enabled: true
+xpack.ml.dfa.enabled: true
+xpack.ml.nlp.enabled: true
+
+# =============================================================================
+# SAVED OBJECTS
+# =============================================================================
+savedObjects.maxImportPayloadBytes: 26214400
+savedObjects.maxImportExportSize: 10000
+
+# =============================================================================
+# DASHBOARD AND VISUALIZATION SETTINGS
+# =============================================================================
+# Dashboard settings
+visualize.enableLabs: true
+dashboard.allowByValueEmbeddables: true
+
+# Data views (index patterns)
+data.search.aggs.shardDelay.enabled: true
+data.search.sessions.enabled: true
+data.search.usageTelemetry.enabled: true
+
+# =============================================================================
+# PERFORMANCE OPTIMIZATION
+# =============================================================================
+# Memory and performance settings
+data.search.timeout: 600000
+data.search.sessions.defaultExpiration: "7d"
+data.search.sessions.management.maxSessions: 10000
+data.search.sessions.management.refreshInterval: "1m"
+data.search.sessions.management.refreshTimeout: "1m"
+
+# Elasticsearch query settings
+elasticsearch.maxConcurrentShardRequests: 5
+
+# =============================================================================
+# TELEMETRY
+# =============================================================================
+telemetry.enabled: false
+telemetry.allowChangingOptInStatus: false
+
+# =============================================================================
+# NEWSFEED
+# =============================================================================
+newsfeed.enabled: false
+
+# =============================================================================
+# CUSTOM SIEM SETTINGS
+# =============================================================================
+# Default space settings
+xpack.spaces.defaultSpace: "default"
+
+# Index pattern settings for SIEM
+kibana.defaultAppId: "securitySolutionUI"
+kibana.autocompleteTimeout: 1000
+kibana.autocompleteTerminateAfter: 100000
+
+# =============================================================================
+# ADVANCED SETTINGS
+# =============================================================================
+# Advanced Kibana settings
+server.compression.enabled: true
+server.compression.referrerWhitelist: ["localhost:5601", "kibana:5601"]
+
+# CORS settings
+server.cors.enabled: false
+server.cors.allowCredentials: false
+server.cors.allowOrigin: ["*"]
+
+# Custom headers
+server.customResponseHeaders:
+  "X-Frame-Options": "DENY"
+  "X-Content-Type-Options": "nosniff"
+  "X-XSS-Protection": "1; mode=block"
+  "Strict-Transport-Security": "max-age=31536000; includeSubDomains"
+  "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none';"
+
+# =============================================================================
+# INTERNATIONALIZATION
+# =============================================================================
+i18n.locale: "en"
+
+# =============================================================================
+# PLUGIN CONFIGURATION
+# =============================================================================
+# Plugin settings
+plugins.scanDirs: ["/usr/share/kibana/plugins"]
+plugins.initialize: true
+
+# =============================================================================
+# DEVELOPMENT SETTINGS (disable in production)
+# =============================================================================
+# Development mode settings (set to false in production)
+env.name: "production"
+optimize.enabled: true
+
+# =============================================================================
+# MEMORY SETTINGS
+# =============================================================================
+# Node.js memory settings
+node.options:
+  - "--max-old-space-size=4096"
+
+# =============================================================================
+# WAZUH PLUGIN CONFIGURATION
+# =============================================================================
+# Wazuh plugin settings (if Wazuh plugin is installed)
+wazuh.shards: 1
+wazuh.replicas: 0
+wazuh.refresh: "30s"
+wazuh.monitoring.enabled: true
+wazuh.monitoring.frequency: 900
+wazuh.monitoring.shards: 1
+wazuh.monitoring.replicas: 0
+wazuh.monitoring.creation: "d"
+wazuh.monitoring.pattern: "wazuh-monitoring-*"
+
+# =============================================================================
+# END OF CONFIGURATION
+# =============================================================================
