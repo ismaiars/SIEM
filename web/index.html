@@ -106,12 +106,50 @@
             color: #721c24;
         }
 
+        .progress-container {
+            margin-top: 10px;
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .time-remaining {
+            font-size: 0.8rem;
+            margin-top: 5px;
+            color: #666;
+            font-weight: normal;
+        }
+
+        .service-details {
+            font-size: 0.75rem;
+            margin-top: 5px;
+            color: #888;
+            font-style: italic;
+        }
+
         .elasticsearch { border-left: 5px solid #005571; }
         .kibana { border-left: 5px solid #e8478d; }
         .grafana { border-left: 5px solid #ff8c00; }
         .wazuh { border-left: 5px solid #3498db; }
         .suricata { border-left: 5px solid #e74c3c; }
         .nginx { border-left: 5px solid #2ecc71; }
+        .logstash { border-left: 5px solid #9b59b6; }
+        .filebeat { border-left: 5px solid #e67e22; }
 
         .system-status {
             background: white;
@@ -168,6 +206,11 @@
                 <div class="card-title">Elasticsearch</div>
                 <div class="card-description">Motor de búsqueda y análisis de datos. API principal para consultas directas y verificación del cluster.</div>
                 <div class="card-status status-online" id="elasticsearch-status">🟢 En Línea</div>
+                <div class="progress-container" id="elasticsearch-progress-container" style="display: none;">
+                    <div class="progress-bar" id="elasticsearch-progress"></div>
+                </div>
+                <div class="time-remaining" id="elasticsearch-time" style="display: none;"></div>
+                <div class="service-details" id="elasticsearch-details" style="display: none;"></div>
             </a>
 
             <a href="http://localhost:5601" target="_blank" class="dashboard-card kibana">
@@ -175,6 +218,11 @@
                 <div class="card-title">Kibana</div>
                 <div class="card-description">Interfaz principal de visualización. Dashboards, búsquedas avanzadas y análisis de logs.</div>
                 <div class="card-status status-starting" id="kibana-status">🟡 Iniciando</div>
+                <div class="progress-container" id="kibana-progress-container">
+                    <div class="progress-bar" id="kibana-progress" style="width: 25%;"></div>
+                </div>
+                <div class="time-remaining" id="kibana-time">⏱️ Tiempo estimado: 2-3 minutos</div>
+                <div class="service-details" id="kibana-details">Conectando con Elasticsearch...</div>
             </a>
 
             <a href="http://localhost:3000" target="_blank" class="dashboard-card grafana">
@@ -182,6 +230,11 @@
                 <div class="card-title">Grafana</div>
                 <div class="card-description">Dashboards de métricas y monitoreo de rendimiento del sistema y infraestructura.</div>
                 <div class="card-status status-starting" id="grafana-status">🟡 Iniciando</div>
+                <div class="progress-container" id="grafana-progress-container">
+                    <div class="progress-bar" id="grafana-progress" style="width: 40%;"></div>
+                </div>
+                <div class="time-remaining" id="grafana-time">⏱️ Tiempo estimado: 1-2 minutos</div>
+                <div class="service-details" id="grafana-details">Conectando con PostgreSQL...</div>
             </a>
 
             <a href="#" onclick="showWazuhInfo()" class="dashboard-card wazuh">
@@ -189,6 +242,11 @@
                 <div class="card-title">Wazuh Manager</div>
                 <div class="card-description">Sistema de detección de intrusiones y monitoreo de integridad de archivos.</div>
                 <div class="card-status status-starting" id="wazuh-status">🟡 Configurando</div>
+                <div class="progress-container" id="wazuh-progress-container">
+                    <div class="progress-bar" id="wazuh-progress" style="width: 15%;"></div>
+                </div>
+                <div class="time-remaining" id="wazuh-time">⏱️ Tiempo estimado: 3-5 minutos</div>
+                <div class="service-details" id="wazuh-details">Inicializando agentes y reglas...</div>
             </a>
 
             <a href="#" onclick="showSuricataInfo()" class="dashboard-card suricata">
@@ -196,13 +254,47 @@
                 <div class="card-title">Suricata IDS</div>
                 <div class="card-description">Sistema de detección y prevención de intrusiones de red en tiempo real.</div>
                 <div class="card-status status-starting" id="suricata-status">🟡 Configurando</div>
+                <div class="progress-container" id="suricata-progress-container">
+                    <div class="progress-bar" id="suricata-progress" style="width: 60%;"></div>
+                </div>
+                <div class="time-remaining" id="suricata-time">⏱️ Tiempo estimado: 1-2 minutos</div>
+                <div class="service-details" id="suricata-details">Cargando reglas de detección...</div>
+            </a>
+
+            <a href="#" onclick="showLogstashInfo()" class="dashboard-card logstash">
+                <div class="card-icon">🔄</div>
+                <div class="card-title">Logstash</div>
+                <div class="card-description">Procesador de logs en tiempo real. Recolecta, transforma y envía datos a Elasticsearch.</div>
+                <div class="card-status status-starting" id="logstash-status">🟡 Iniciando</div>
+                <div class="progress-container" id="logstash-progress-container">
+                    <div class="progress-bar" id="logstash-progress" style="width: 30%;"></div>
+                </div>
+                <div class="time-remaining" id="logstash-time">⏱️ Tiempo estimado: 2-3 minutos</div>
+                <div class="service-details" id="logstash-details">Cargando pipelines...</div>
+            </a>
+
+            <a href="#" onclick="showFilebeatInfo()" class="dashboard-card filebeat">
+                <div class="card-icon">📁</div>
+                <div class="card-title">Filebeat</div>
+                <div class="card-description">Agente de recolección de logs. Monitorea archivos y envía datos a Logstash.</div>
+                <div class="card-status status-starting" id="filebeat-status">🟡 Iniciando</div>
+                <div class="progress-container" id="filebeat-progress-container">
+                    <div class="progress-bar" id="filebeat-progress" style="width: 70%;"></div>
+                </div>
+                <div class="time-remaining" id="filebeat-time">⏱️ Tiempo estimado: 1 minuto</div>
+                <div class="service-details" id="filebeat-details">Configurando harvester...</div>
             </a>
 
             <a href="http://localhost" target="_blank" class="dashboard-card nginx">
                 <div class="card-icon">⚡</div>
                 <div class="card-title">Nginx Proxy</div>
                 <div class="card-description">Proxy web que unifica el acceso a todas las interfaces del sistema SIEM.</div>
-                <div class="card-status status-starting" id="nginx-status">🟡 Configurando</div>
+                <div class="card-status status-online" id="nginx-status">🟢 En Línea</div>
+                <div class="progress-container" id="nginx-progress-container" style="display: none;">
+                    <div class="progress-bar" id="nginx-progress"></div>
+                </div>
+                <div class="time-remaining" id="nginx-time" style="display: none;"></div>
+                <div class="service-details" id="nginx-details" style="display: none;"></div>
             </a>
         </div>
 
@@ -230,6 +322,20 @@
     </div>
 
     <script>
+        // Configuración de servicios con tiempos estimados
+        const serviceConfig = {
+            elasticsearch: { maxTime: 60, currentTime: 0, phases: ['Iniciando cluster', 'Verificando índices', 'Listo'] },
+            kibana: { maxTime: 180, currentTime: 0, phases: ['Conectando con Elasticsearch', 'Cargando plugins', 'Inicializando UI', 'Listo'] },
+            grafana: { maxTime: 120, currentTime: 0, phases: ['Conectando con PostgreSQL', 'Cargando dashboards', 'Configurando datasources', 'Listo'] },
+            wazuh: { maxTime: 300, currentTime: 0, phases: ['Inicializando agentes', 'Cargando reglas', 'Configurando alertas', 'Sincronizando', 'Listo'] },
+            suricata: { maxTime: 90, currentTime: 0, phases: ['Cargando reglas de detección', 'Configurando interfaces', 'Iniciando monitoreo', 'Listo'] },
+            logstash: { maxTime: 150, currentTime: 0, phases: ['Cargando pipelines', 'Configurando inputs', 'Conectando con Elasticsearch', 'Listo'] },
+            filebeat: { maxTime: 60, currentTime: 0, phases: ['Configurando harvester', 'Conectando con Logstash', 'Iniciando monitoreo', 'Listo'] },
+            nginx: { maxTime: 30, currentTime: 30, phases: ['Listo'] }
+        };
+
+        let startTime = Date.now();
+
         // Función para verificar el estado de los servicios
         async function checkServiceStatus() {
             const services = [
@@ -241,43 +347,143 @@
             for (const service of services) {
                 try {
                     const response = await fetch(service.url, { mode: 'no-cors' });
-                    updateServiceStatus(service.element, 'online');
+                    updateServiceStatus(service.name, 'online');
                 } catch (error) {
                     // En modo no-cors, cualquier respuesta indica que el servicio está disponible
-                    updateServiceStatus(service.element, 'starting');
+                    updateServiceStatus(service.name, 'starting');
                 }
             }
         }
 
-        function updateServiceStatus(elementId, status) {
-            const element = document.getElementById(elementId);
+        function updateServiceStatus(serviceName, status) {
+            const element = document.getElementById(`${serviceName}-status`);
+            const progressContainer = document.getElementById(`${serviceName}-progress-container`);
+            const timeElement = document.getElementById(`${serviceName}-time`);
+            const detailsElement = document.getElementById(`${serviceName}-details`);
+            
             if (status === 'online') {
                 element.className = 'card-status status-online';
                 element.textContent = '🟢 En Línea';
+                progressContainer.style.display = 'none';
+                timeElement.style.display = 'none';
+                detailsElement.style.display = 'none';
+                serviceConfig[serviceName].currentTime = serviceConfig[serviceName].maxTime;
             } else if (status === 'starting') {
                 element.className = 'card-status status-starting';
                 element.textContent = '🟡 Iniciando';
+                progressContainer.style.display = 'block';
+                timeElement.style.display = 'block';
+                detailsElement.style.display = 'block';
             } else {
                 element.className = 'card-status status-offline';
                 element.textContent = '🔴 Offline';
+                progressContainer.style.display = 'none';
+                timeElement.style.display = 'none';
+                detailsElement.style.display = 'none';
             }
         }
 
+        function updateProgress() {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            
+            Object.keys(serviceConfig).forEach(serviceName => {
+                const config = serviceConfig[serviceName];
+                const progressBar = document.getElementById(`${serviceName}-progress`);
+                const timeElement = document.getElementById(`${serviceName}-time`);
+                const detailsElement = document.getElementById(`${serviceName}-details`);
+                
+                if (!progressBar) return;
+                
+                // Actualizar tiempo transcurrido
+                config.currentTime = Math.min(elapsed, config.maxTime);
+                const progress = (config.currentTime / config.maxTime) * 100;
+                const remaining = Math.max(0, config.maxTime - config.currentTime);
+                
+                // Actualizar barra de progreso
+                progressBar.style.width = `${progress}%`;
+                
+                // Actualizar tiempo restante
+                if (timeElement && remaining > 0) {
+                    const minutes = Math.floor(remaining / 60);
+                    const seconds = remaining % 60;
+                    timeElement.textContent = `⏱️ Tiempo estimado: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+                }
+                
+                // Actualizar fase actual
+                if (detailsElement) {
+                    const phaseIndex = Math.min(
+                        Math.floor((progress / 100) * config.phases.length),
+                        config.phases.length - 1
+                    );
+                    detailsElement.textContent = config.phases[phaseIndex];
+                }
+                
+                // Si está completo, marcar como online
+                if (progress >= 100 && serviceName !== 'elasticsearch' && serviceName !== 'nginx') {
+                    updateServiceStatus(serviceName, 'online');
+                }
+            });
+            
+            // Actualizar contadores del sistema
+            updateSystemCounters();
+        }
+
+        function updateSystemCounters() {
+            let online = 0, starting = 0, offline = 0;
+            
+            Object.keys(serviceConfig).forEach(serviceName => {
+                const statusElement = document.getElementById(`${serviceName}-status`);
+                if (statusElement) {
+                    if (statusElement.textContent.includes('En Línea')) online++;
+                    else if (statusElement.textContent.includes('Iniciando')) starting++;
+                    else offline++;
+                }
+            });
+            
+            document.getElementById('services-online').textContent = online;
+            document.getElementById('services-starting').textContent = starting;
+            document.getElementById('services-offline').textContent = offline;
+        }
+
         function showWazuhInfo() {
-            alert('Wazuh Manager está configurándose. Una vez completado, estará disponible para monitoreo de integridad de archivos y detección de amenazas.');
+            const config = serviceConfig.wazuh;
+            const remaining = Math.max(0, config.maxTime - config.currentTime);
+            const minutes = Math.floor(remaining / 60);
+            alert(`Wazuh Manager está configurándose.\n\nTiempo estimado restante: ${minutes} minutos\nFase actual: ${config.phases[Math.floor((config.currentTime / config.maxTime) * config.phases.length)]}\n\nUna vez completado, estará disponible para monitoreo de integridad de archivos y detección de amenazas.`);
         }
 
         function showSuricataInfo() {
-            alert('Suricata IDS está configurándose. Una vez completado, monitoreará el tráfico de red en busca de amenazas e intrusiones.');
+            const config = serviceConfig.suricata;
+            const remaining = Math.max(0, config.maxTime - config.currentTime);
+            const minutes = Math.floor(remaining / 60);
+            alert(`Suricata IDS está configurándose.\n\nTiempo estimado restante: ${minutes} minutos\nFase actual: ${config.phases[Math.floor((config.currentTime / config.maxTime) * config.phases.length)]}\n\nUna vez completado, monitoreará el tráfico de red en busca de amenazas e intrusiones.`);
         }
 
-        // Verificar estado cada 30 segundos
-        setInterval(checkServiceStatus, 30000);
+        function showLogstashInfo() {
+            const config = serviceConfig.logstash;
+            const remaining = Math.max(0, config.maxTime - config.currentTime);
+            const minutes = Math.floor(remaining / 60);
+            alert(`Logstash está configurándose.\n\nTiempo estimado restante: ${minutes} minutos\nFase actual: ${config.phases[Math.floor((config.currentTime / config.maxTime) * config.phases.length)]}\n\nUna vez completado, procesará logs en tiempo real y los enviará a Elasticsearch.`);
+        }
+
+        function showFilebeatInfo() {
+            const config = serviceConfig.filebeat;
+            const remaining = Math.max(0, config.maxTime - config.currentTime);
+            const minutes = Math.floor(remaining / 60);
+            alert(`Filebeat está configurándose.\n\nTiempo estimado restante: ${minutes} minutos\nFase actual: ${config.phases[Math.floor((config.currentTime / config.maxTime) * config.phases.length)]}\n\nUna vez completado, recolectará logs de archivos y los enviará a Logstash.`);
+        }
+
+        // Actualizar progreso cada segundo
+        setInterval(updateProgress, 1000);
+        
+        // Verificar estado cada 15 segundos
+        setInterval(checkServiceStatus, 15000);
         
         // Verificar estado inicial
         checkServiceStatus();
+        updateProgress();
 
-        // Actualizar timestamp
+        // Actualizar timestamp en el título
         setInterval(() => {
             const now = new Date();
             document.title = `SIEM Dashboard - ${now.toLocaleTimeString()}`;

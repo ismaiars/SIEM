@@ -108,8 +108,9 @@ services:
     environment:
       - "LS_JAVA_OPTS=-Xms${LOGSTASH_HEAP_SIZE:-1g} -Xmx${LOGSTASH_HEAP_SIZE:-1g}"
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-      # - ELASTICSEARCH_USERNAME=logstash_system
-      # - ELASTICSEARCH_PASSWORD=${LOGSTASH_PASSWORD:-SecurePass123!}
+      - ELASTICSEARCH_USERNAME=logstash_system
+      - ELASTICSEARCH_PASSWORD=${LOGSTASH_PASSWORD:-SecurePass123!}
+      - LOGSTASH_PASSWORD=${LOGSTASH_PASSWORD:-SecurePass123!}
     volumes:
       - ./config/logstash/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
       - ./config/logstash/pipelines.yml:/usr/share/logstash/config/pipelines.yml:ro
