@@ -1,0 +1,19 @@
+name: "Intentos de Login Fallidos"
+type: "frequency"
+index: "logstash-*"
+num_events: 3
+timeframe:
+  minutes: 5
+
+filter:
+- query:
+    query_string:
+      query: "WARNING AND (login OR authentication) AND (failed OR fallido)"
+
+alert:
+- "debug"
+
+alert_text: |
+  Se detectaron multiples intentos de login fallidos:
+  - Tiempo: {0}
+  - Eventos: {1}

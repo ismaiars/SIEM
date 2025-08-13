@@ -1,0 +1,16 @@
+# Grafana Dashboard Provisioning Configuration for SIEM
+# This file tells Grafana where to find dashboard definitions
+
+apiVersion: 1
+
+providers:
+  # SIEM Dashboards Provider
+  - name: 'SIEM Dashboards'
+    orgId: 1
+    folder: 'SIEM'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards

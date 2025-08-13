@@ -1,0 +1,70 @@
+# =============================================================================
+# CONFIGURACIÓN DE FILEBEAT PARA WINDOWS
+# =============================================================================
+
+# Windows Event Logs - Seguridad
+- type: winlogbeat
+  id: windows-security
+  enabled: true
+  event_logs:
+    - name: Security
+      level: information
+  fields:
+    logtype: windows-security
+    environment: production
+    source: windows-eventlog
+  fields_under_root: true
+
+# Windows Event Logs - Sistema
+- type: winlogbeat
+  id: windows-system
+  enabled: true
+  event_logs:
+    - name: System
+      level: warning
+  fields:
+    logtype: windows-system
+    environment: production
+    source: windows-eventlog
+  fields_under_root: true
+
+# Windows Event Logs - Aplicaciones
+- type: winlogbeat
+  id: windows-application
+  enabled: true
+  event_logs:
+    - name: Application
+      level: error
+  fields:
+    logtype: windows-application
+    environment: production
+    source: windows-eventlog
+  fields_under_root: true
+
+# Logs de IIS (si está instalado)
+- type: log
+  id: iis-logs
+  enabled: false
+  paths:
+    - C:\inetpub\logs\LogFiles\W3SVC*\*.log
+  fields:
+    logtype: iis-access
+    service: web
+    environment: production
+  fields_under_root: true
+  multiline.pattern: '^\d{4}-\d{2}-\d{2}'
+  multiline.negate: true
+  multiline.match: after
+
+# Logs de ejemplo para demostración
+- type: log
+  id: windows-demo-logs
+  enabled: true
+  paths:
+    - ./logs-ejemplo/*.log
+  fields:
+    logtype: demo
+    environment: development
+    source: windows-demo
+  fields_under_root: true
+  scan_frequency: 5s

@@ -1,0 +1,99 @@
+# Grafana Datasources Configuration for SIEM
+# This file configures the data sources that Grafana will use to connect to various services
+
+apiVersion: 1
+
+datasources:
+  # Prometheus - Main metrics and monitoring data source
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: "5s"
+      queryTimeout: "60s"
+      httpMethod: "POST"
+    secureJsonData: {}
+
+  # Elasticsearch - Log aggregation and security events
+  - name: Elasticsearch
+    type: elasticsearch
+    access: proxy
+    url: http://elasticsearch:9200
+    database: "[logstash-]YYYY.MM.DD"
+    editable: true
+    jsonData:
+      interval: "Daily"
+      timeField: "@timestamp"
+      esVersion: "8.0.0"
+      maxConcurrentShardRequests: 5
+      logMessageField: "message"
+      logLevelField: "level"
+    secureJsonData: {}
+
+  # Loki - Log aggregation alternative
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: true
+    jsonData:
+      maxLines: 1000
+      timeout: "60s"
+    secureJsonData: {}
+
+  # InfluxDB - Time series database (if used)
+  - name: InfluxDB
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    database: "siem"
+    editable: true
+    jsonData:
+      httpMode: "GET"
+      timeInterval: "5s"
+    secureJsonData: {}
+
+  # PostgreSQL - Relational database for structured data
+  - name: PostgreSQL
+    type: postgres
+    access: proxy
+    url: postgresql:5432
+    database: "siem"
+    user: "${POSTGRES_USER}"
+    editable: true
+    jsonData:
+      sslmode: "disable"
+      maxOpenConns: 100
+      maxIdleConns: 100
+      connMaxLifetime: 14400
+    secureJsonData:
+      password: "${POSTGRES_PASSWORD}"
+
+  # Wazuh API - Security information and event management
+  - name: Wazuh
+    type: grafana-simple-json-datasource
+    access: proxy
+    url: http://wazuh-manager:55000
+    editable: true
+    jsonData:
+      httpHeaderName1: "Authorization"
+    secureJsonData:
+      httpHeaderValue1: "Bearer ${WAZUH_API_TOKEN}"
+
+  # Redis - Cache and session storage metrics
+  - name: Redis
+    type: redis-datasource
+    access: proxy
+    url: redis:6379
+    editable: true
+    jsonData:
+      client: "standalone"
+      poolSize: 5
+      timeout: 10
+      pingInterval: 0
+      pipelineWindow: 0
+    secureJsonData:
+      password: "${REDIS_PASSWORD}"

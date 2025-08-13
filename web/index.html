@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SIEM Dashboard - Centro de Control</title>
+    <title>SIEM Dashboard - Centro de Control Automatizado</title>
     <style>
         * {
             margin: 0;
@@ -13,13 +13,14 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             min-height: 100vh;
             padding: 20px;
+            color: #333;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
@@ -38,146 +39,150 @@
         .header p {
             font-size: 1.2rem;
             opacity: 0.9;
+            margin-bottom: 20px;
         }
 
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 25px;
-            margin-bottom: 40px;
-        }
-
-        .dashboard-card {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            cursor: pointer;
-            text-decoration: none;
-            color: inherit;
-        }
-
-        .dashboard-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
-        }
-
-        .card-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-
-        .card-title {
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-
-        .card-description {
-            color: #666;
-            text-align: center;
-            line-height: 1.5;
-            margin-bottom: 15px;
-        }
-
-        .card-status {
-            text-align: center;
+        .status-indicator {
+            display: inline-block;
             padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.9rem;
+            background: rgba(40, 167, 69, 0.2);
+            border: 2px solid #28a745;
+            border-radius: 25px;
+            color: #28a745;
             font-weight: bold;
+            font-size: 0.9rem;
         }
 
-        .status-online {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .status-starting {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .status-offline {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .progress-container {
-            margin-top: 10px;
-            background: #e9ecef;
-            border-radius: 10px;
-            height: 8px;
-            overflow: hidden;
-        }
-
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #28a745, #20c997);
-            border-radius: 10px;
-            transition: width 0.3s ease;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.7; }
-            100% { opacity: 1; }
-        }
-
-        .time-remaining {
-            font-size: 0.8rem;
-            margin-top: 5px;
-            color: #666;
-            font-weight: normal;
-        }
-
-        .service-details {
-            font-size: 0.75rem;
-            margin-top: 5px;
-            color: #888;
-            font-style: italic;
-        }
-
-        .elasticsearch { border-left: 5px solid #005571; }
-        .kibana { border-left: 5px solid #e8478d; }
-        .grafana { border-left: 5px solid #ff8c00; }
-        .wazuh { border-left: 5px solid #3498db; }
-        .suricata { border-left: 5px solid #e74c3c; }
-        .nginx { border-left: 5px solid #2ecc71; }
-        .logstash { border-left: 5px solid #9b59b6; }
-        .filebeat { border-left: 5px solid #e67e22; }
-
-        .system-status {
+        .section {
             background: white;
             border-radius: 15px;
             padding: 30px;
+            margin-bottom: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
 
-        .status-grid {
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .dashboard-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 20px;
+            text-decoration: none;
+            display: block;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .dashboard-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .button-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            display: block;
+            text-align: center;
+        }
+
+        .button-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .button-description {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        /* Colores específicos por categoría */
+        .security-button {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .network-button {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        }
+
+        .logs-button {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        }
+
+        .metrics-button {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+        }
+
+        .admin-button {
+            background: linear-gradient(135deg, #8e44ad 0%, #7d3c98 100%);
+        }
+
+        .quick-access {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
+            margin-bottom: 30px;
         }
 
-        .status-item {
-            text-align: center;
+        .quick-button {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
             padding: 15px;
             border-radius: 10px;
-            background: #f8f9fa;
+            text-decoration: none;
+            text-align: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
         }
 
-        .status-value {
+        .quick-button:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.5);
+            transform: translateY(-2px);
+        }
+
+        .system-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
             font-size: 2rem;
             font-weight: bold;
+            color: #2c3e50;
             margin-bottom: 5px;
         }
 
-        .status-label {
+        .stat-label {
             color: #666;
             font-size: 0.9rem;
         }
@@ -187,8 +192,12 @@
                 font-size: 2rem;
             }
             
-            .dashboard-grid {
+            .button-grid {
                 grid-template-columns: 1fr;
+            }
+            
+            .quick-access {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
     </style>
@@ -196,298 +205,239 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🛡️ SIEM Dashboard</h1>
-            <p>Centro de Control de Seguridad - Monitoreo y Análisis en Tiempo Real</p>
+            <h1>🛡️ SIEM Centro de Control</h1>
+            <p>Sistema de Monitoreo y Análisis de Seguridad Automatizado</p>
+            <div class="status-indicator">🟢 Sistema Operativo - Recopilación Automática Activa</div>
         </div>
 
-        <div class="dashboard-grid">
-            <a href="http://localhost:9200" target="_blank" class="dashboard-card elasticsearch">
-                <div class="card-icon">🔍</div>
-                <div class="card-title">Elasticsearch</div>
-                <div class="card-description">Motor de búsqueda y análisis de datos. API principal para consultas directas y verificación del cluster.</div>
-                <div class="card-status status-online" id="elasticsearch-status">🟢 En Línea</div>
-                <div class="progress-container" id="elasticsearch-progress-container" style="display: none;">
-                    <div class="progress-bar" id="elasticsearch-progress"></div>
-                </div>
-                <div class="time-remaining" id="elasticsearch-time" style="display: none;"></div>
-                <div class="service-details" id="elasticsearch-details" style="display: none;"></div>
+        <!-- Acceso Rápido -->
+        <div class="quick-access">
+            <a href="http://localhost:5601" target="_blank" class="quick-button">
+                <div>📊 Kibana Principal</div>
             </a>
-
-            <a href="http://localhost:5601" target="_blank" class="dashboard-card kibana">
-                <div class="card-icon">📊</div>
-                <div class="card-title">Kibana</div>
-                <div class="card-description">Interfaz principal de visualización. Dashboards, búsquedas avanzadas y análisis de logs.</div>
-                <div class="card-status status-starting" id="kibana-status">🟡 Iniciando</div>
-                <div class="progress-container" id="kibana-progress-container">
-                    <div class="progress-bar" id="kibana-progress" style="width: 25%;"></div>
-                </div>
-                <div class="time-remaining" id="kibana-time">⏱️ Tiempo estimado: 2-3 minutos</div>
-                <div class="service-details" id="kibana-details">Conectando con Elasticsearch...</div>
+            <a href="http://localhost:3000" target="_blank" class="quick-button">
+                <div>📈 Grafana Métricas</div>
             </a>
-
-            <a href="http://localhost:3000" target="_blank" class="dashboard-card grafana">
-                <div class="card-icon">📈</div>
-                <div class="card-title">Grafana</div>
-                <div class="card-description">Dashboards de métricas y monitoreo de rendimiento del sistema y infraestructura.</div>
-                <div class="card-status status-starting" id="grafana-status">🟡 Iniciando</div>
-                <div class="progress-container" id="grafana-progress-container">
-                    <div class="progress-bar" id="grafana-progress" style="width: 40%;"></div>
-                </div>
-                <div class="time-remaining" id="grafana-time">⏱️ Tiempo estimado: 1-2 minutos</div>
-                <div class="service-details" id="grafana-details">Conectando con PostgreSQL...</div>
+            <a href="http://localhost:9200" target="_blank" class="quick-button">
+                <div>🔍 Elasticsearch API</div>
             </a>
-
-            <a href="#" onclick="showWazuhInfo()" class="dashboard-card wazuh">
-                <div class="card-icon">🔐</div>
-                <div class="card-title">Wazuh Manager</div>
-                <div class="card-description">Sistema de detección de intrusiones y monitoreo de integridad de archivos.</div>
-                <div class="card-status status-starting" id="wazuh-status">🟡 Configurando</div>
-                <div class="progress-container" id="wazuh-progress-container">
-                    <div class="progress-bar" id="wazuh-progress" style="width: 15%;"></div>
-                </div>
-                <div class="time-remaining" id="wazuh-time">⏱️ Tiempo estimado: 3-5 minutos</div>
-                <div class="service-details" id="wazuh-details">Inicializando agentes y reglas...</div>
-            </a>
-
-            <a href="#" onclick="showSuricataInfo()" class="dashboard-card suricata">
-                <div class="card-icon">🌐</div>
-                <div class="card-title">Suricata IDS</div>
-                <div class="card-description">Sistema de detección y prevención de intrusiones de red en tiempo real.</div>
-                <div class="card-status status-starting" id="suricata-status">🟡 Configurando</div>
-                <div class="progress-container" id="suricata-progress-container">
-                    <div class="progress-bar" id="suricata-progress" style="width: 60%;"></div>
-                </div>
-                <div class="time-remaining" id="suricata-time">⏱️ Tiempo estimado: 1-2 minutos</div>
-                <div class="service-details" id="suricata-details">Cargando reglas de detección...</div>
-            </a>
-
-            <a href="#" onclick="showLogstashInfo()" class="dashboard-card logstash">
-                <div class="card-icon">🔄</div>
-                <div class="card-title">Logstash</div>
-                <div class="card-description">Procesador de logs en tiempo real. Recolecta, transforma y envía datos a Elasticsearch.</div>
-                <div class="card-status status-starting" id="logstash-status">🟡 Iniciando</div>
-                <div class="progress-container" id="logstash-progress-container">
-                    <div class="progress-bar" id="logstash-progress" style="width: 30%;"></div>
-                </div>
-                <div class="time-remaining" id="logstash-time">⏱️ Tiempo estimado: 2-3 minutos</div>
-                <div class="service-details" id="logstash-details">Cargando pipelines...</div>
-            </a>
-
-            <a href="#" onclick="showFilebeatInfo()" class="dashboard-card filebeat">
-                <div class="card-icon">📁</div>
-                <div class="card-title">Filebeat</div>
-                <div class="card-description">Agente de recolección de logs. Monitorea archivos y envía datos a Logstash.</div>
-                <div class="card-status status-starting" id="filebeat-status">🟡 Iniciando</div>
-                <div class="progress-container" id="filebeat-progress-container">
-                    <div class="progress-bar" id="filebeat-progress" style="width: 70%;"></div>
-                </div>
-                <div class="time-remaining" id="filebeat-time">⏱️ Tiempo estimado: 1 minuto</div>
-                <div class="service-details" id="filebeat-details">Configurando harvester...</div>
-            </a>
-
-            <a href="http://localhost" target="_blank" class="dashboard-card nginx">
-                <div class="card-icon">⚡</div>
-                <div class="card-title">Nginx Proxy</div>
-                <div class="card-description">Proxy web que unifica el acceso a todas las interfaces del sistema SIEM.</div>
-                <div class="card-status status-online" id="nginx-status">🟢 En Línea</div>
-                <div class="progress-container" id="nginx-progress-container" style="display: none;">
-                    <div class="progress-bar" id="nginx-progress"></div>
-                </div>
-                <div class="time-remaining" id="nginx-time" style="display: none;"></div>
-                <div class="service-details" id="nginx-details" style="display: none;"></div>
+            <a href="http://localhost:9090" target="_blank" class="quick-button">
+                <div>⚡ Prometheus</div>
             </a>
         </div>
 
-        <div class="system-status">
-            <h2 style="text-align: center; margin-bottom: 20px; color: #333;">📋 Estado del Sistema</h2>
-            <div class="status-grid">
-                <div class="status-item">
-                    <div class="status-value" style="color: #28a745;" id="services-online">3</div>
-                    <div class="status-label">Servicios En Línea</div>
+        <!-- Dashboards de Seguridad -->
+        <div class="section">
+            <h2 class="section-title">🔐 Dashboards de Seguridad</h2>
+            <div class="button-grid">
+                <a href="http://localhost:5601/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-24h,to:now))&_a=(columns:!(),filters:!(),index:'wazuh-alerts-*',interval:auto,query:(language:kuery,query:''),sort:!())" target="_blank" class="dashboard-button security-button">
+                    <span class="button-icon">🛡️</span>
+                    <div class="button-title">Alertas de Wazuh</div>
+                    <div class="button-description">Vista de alertas de seguridad y eventos detectados por Wazuh</div>
+                </a>
+                
+                <a href="http://localhost:5601/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-24h,to:now))&_a=(columns:!(),filters:!(),index:'suricata-*',interval:auto,query:(language:kuery,query:''),sort:!())" target="_blank" class="dashboard-button security-button">
+                    <span class="button-icon">🚨</span>
+                    <div class="button-title">Eventos de Suricata</div>
+                    <div class="button-description">Detección de intrusiones y análisis de tráfico de red</div>
+                </a>
+                
+                <a href="http://localhost:3000/d/000000074/host-overview?orgId=1&refresh=30s" target="_blank" class="dashboard-button security-button">
+                    <span class="button-icon">🌐</span>
+                    <div class="button-title">Monitoreo de Host</div>
+                    <div class="button-description">Métricas de sistema y monitoreo de recursos en Grafana</div>
+                </a>
+                
+                <a href="http://localhost:5601/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-24h,to:now))&_a=(columns:!(),filters:!(),index:'filebeat-*',interval:auto,query:(language:kuery,query:''),sort:!())" target="_blank" class="dashboard-button security-button">
+                    <span class="button-icon">📁</span>
+                    <div class="button-title">Logs de Sistema</div>
+                    <div class="button-description">Logs recopilados por Filebeat de archivos y servicios del sistema</div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Análisis de Red -->
+        <div class="section">
+            <h2 class="section-title">🌐 Análisis de Red y Tráfico</h2>
+            <div class="button-grid">
+                <a href="http://localhost:5601/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-1h,to:now))&_a=(columns:!(source.ip,destination.ip,network.protocol),filters:!(),index:'suricata-*',interval:auto,query:(language:kuery,query:'event_type:flow'),sort:!())" target="_blank" class="dashboard-button network-button">
+                    <span class="button-icon">📡</span>
+                    <div class="button-title">Flujos de Red</div>
+                    <div class="button-description">Análisis de flujos de red detectados por Suricata</div>
+                </a>
+                
+                <a href="http://localhost:5601/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-1h,to:now))&_a=(columns:!(dns.question.name,dns.answers.name),filters:!(),index:'suricata-*',interval:auto,query:(language:kuery,query:'event_type:dns'),sort:!())" target="_blank" class="dashboard-button network-button">
+                    <span class="button-icon">🔍</span>
+                    <div class="button-title">Consultas DNS</div>
+                    <div class="button-description">Análisis de consultas DNS capturadas por Suricata</div>
+                </a>
+                
+                <a href="http://localhost:5601/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-1h,to:now))&_a=(columns:!(source.ip,destination.ip,rule.name),filters:!(),index:'suricata-*',interval:auto,query:(language:kuery,query:'event_type:alert'),sort:!())" target="_blank" class="dashboard-button network-button">
+                    <span class="button-icon">🔥</span>
+                    <div class="button-title">Alertas de Red</div>
+                    <div class="button-description">Alertas de seguridad de red generadas por Suricata</div>
+                </a>
+                
+                <a href="http://localhost:3000/d/000000075/network-overview?orgId=1&refresh=30s" target="_blank" class="dashboard-button network-button">
+                    <span class="button-icon">🗺️</span>
+                    <div class="button-title">Métricas de Red</div>
+                    <div class="button-description">Estadísticas de red y conectividad en Grafana</div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Análisis de Logs -->
+        <div class="section">
+            <h2 class="section-title">📋 Análisis de Logs y Eventos</h2>
+            <div class="button-grid">
+                <a href="http://localhost:5601/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-24h,to:now))&_a=(columns:!(),filters:!(),index:'*',interval:auto,query:(language:kuery,query:''),sort:!())" target="_blank" class="dashboard-button logs-button">
+                    <span class="button-icon">🔍</span>
+                    <div class="button-title">Explorador General</div>
+                    <div class="button-description">Búsqueda avanzada en todos los índices disponibles</div>
+                </a>
+                
+                <a href="http://localhost:5601/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-24h,to:now))&_a=(columns:!(agent.name,rule.description,rule.level),filters:!(),index:'wazuh-alerts-*',interval:auto,query:(language:kuery,query:'rule.groups:syslog'),sort:!())" target="_blank" class="dashboard-button logs-button">
+                    <span class="button-icon">💻</span>
+                    <div class="button-title">Logs de Sistema</div>
+                    <div class="button-description">Eventos del sistema operativo detectados por Wazuh</div>
+                </a>
+                
+                <a href="http://localhost:5601/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-24h,to:now))&_a=(columns:!(agent.name,rule.description,data.srcip),filters:!(),index:'wazuh-alerts-*',interval:auto,query:(language:kuery,query:'rule.groups:authentication'),sort:!())" target="_blank" class="dashboard-button logs-button">
+                    <span class="button-icon">🔐</span>
+                    <div class="button-title">Autenticación</div>
+                    <div class="button-description">Eventos de login, SSH y autenticación del sistema</div>
+                </a>
+                
+                <a href="http://localhost:5601/app/discover#/?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-24h,to:now))&_a=(columns:!(agent.name,rule.description,rule.level),filters:!(),index:'wazuh-alerts-*',interval:auto,query:(language:kuery,query:'rule.groups:web'),sort:!())" target="_blank" class="dashboard-button logs-button">
+                    <span class="button-icon">📱</span>
+                    <div class="button-title">Logs Web</div>
+                    <div class="button-description">Eventos de aplicaciones web y servicios HTTP</div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Métricas y Rendimiento -->
+        <div class="section">
+            <h2 class="section-title">📊 Métricas y Rendimiento</h2>
+            <div class="button-grid">
+                <a href="http://localhost:3000/d/rYdddlPWk/node-exporter-full?orgId=1&refresh=30s" target="_blank" class="dashboard-button metrics-button">
+                    <span class="button-icon">⚡</span>
+                    <div class="button-title">Métricas del Sistema</div>
+                    <div class="button-description">CPU, memoria, disco y métricas de rendimiento del host</div>
+                </a>
+                
+                <a href="http://localhost:3000/d/elasticsearch/elasticsearch-overview?orgId=1&refresh=30s" target="_blank" class="dashboard-button metrics-button">
+                    <span class="button-icon">🔍</span>
+                    <div class="button-title">Estado de Elasticsearch</div>
+                    <div class="button-description">Salud del cluster y métricas de Elasticsearch</div>
+                </a>
+                
+                <a href="http://localhost:3000/d/docker/docker-containers?orgId=1&refresh=30s" target="_blank" class="dashboard-button metrics-button">
+                    <span class="button-icon">🐳</span>
+                    <div class="button-title">Contenedores Docker</div>
+                    <div class="button-description">Estado y recursos de contenedores del SIEM</div>
+                </a>
+                
+                <a href="http://localhost:9090/targets" target="_blank" class="dashboard-button metrics-button">
+                    <span class="button-icon">📈</span>
+                    <div class="button-title">Targets Prometheus</div>
+                    <div class="button-description">Estado de todos los endpoints monitoreados</div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Administración -->
+        <div class="section">
+            <h2 class="section-title">⚙️ Administración y Configuración</h2>
+            <div class="button-grid">
+                <a href="http://localhost:5601/app/management" target="_blank" class="dashboard-button admin-button">
+                    <span class="button-icon">⚙️</span>
+                    <div class="button-title">Gestión de Kibana</div>
+                    <div class="button-description">Configuración de índices, patrones y gestión de Kibana</div>
+                </a>
+                
+                <a href="http://localhost:3000/admin" target="_blank" class="dashboard-button admin-button">
+                    <span class="button-icon">👤</span>
+                    <div class="button-title">Administración Grafana</div>
+                    <div class="button-description">Gestión de usuarios, datasources y configuración de Grafana</div>
+                </a>
+                
+                <a href="http://localhost:9200/_cluster/health" target="_blank" class="dashboard-button admin-button">
+                    <span class="button-icon">💚</span>
+                    <div class="button-title">Estado del Cluster</div>
+                    <div class="button-description">Salud y estado del cluster de Elasticsearch</div>
+                </a>
+                
+                <a href="http://localhost:9090/targets" target="_blank" class="dashboard-button admin-button">
+                    <span class="button-icon">🎯</span>
+                    <div class="button-title">Targets Prometheus</div>
+                    <div class="button-description">Estado de los targets y métricas de Prometheus</div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Estado del Sistema -->
+        <div class="section">
+            <h2 class="section-title">📈 Estado del Sistema en Tiempo Real</h2>
+            <div class="system-stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="services-count">12</div>
+                    <div class="stat-label">Servicios Activos</div>
                 </div>
-                <div class="status-item">
-                    <div class="status-value" style="color: #ffc107;" id="services-starting">5</div>
-                    <div class="status-label">Servicios Iniciando</div>
+                <div class="stat-card">
+                    <div class="stat-value" id="logs-processed">1.2M</div>
+                    <div class="stat-label">Logs Procesados Hoy</div>
                 </div>
-                <div class="status-item">
-                    <div class="status-value" style="color: #dc3545;" id="services-offline">0</div>
-                    <div class="status-label">Servicios Offline</div>
+                <div class="stat-card">
+                    <div class="stat-value" id="alerts-today">23</div>
+                    <div class="stat-label">Alertas Hoy</div>
                 </div>
-                <div class="status-item">
-                    <div class="status-value" style="color: #17a2b8;" id="total-containers">11</div>
-                    <div class="status-label">Total Contenedores</div>
+                <div class="stat-card">
+                    <div class="stat-value" id="uptime">99.8%</div>
+                    <div class="stat-label">Uptime</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="data-ingested">45GB</div>
+                    <div class="stat-label">Datos Ingeridos</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="network-events">856K</div>
+                    <div class="stat-label">Eventos de Red</div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Configuración de servicios con tiempos estimados
-        const serviceConfig = {
-            elasticsearch: { maxTime: 60, currentTime: 0, phases: ['Iniciando cluster', 'Verificando índices', 'Listo'] },
-            kibana: { maxTime: 180, currentTime: 0, phases: ['Conectando con Elasticsearch', 'Cargando plugins', 'Inicializando UI', 'Listo'] },
-            grafana: { maxTime: 120, currentTime: 0, phases: ['Conectando con PostgreSQL', 'Cargando dashboards', 'Configurando datasources', 'Listo'] },
-            wazuh: { maxTime: 300, currentTime: 0, phases: ['Inicializando agentes', 'Cargando reglas', 'Configurando alertas', 'Sincronizando', 'Listo'] },
-            suricata: { maxTime: 90, currentTime: 0, phases: ['Cargando reglas de detección', 'Configurando interfaces', 'Iniciando monitoreo', 'Listo'] },
-            logstash: { maxTime: 150, currentTime: 0, phases: ['Cargando pipelines', 'Configurando inputs', 'Conectando con Elasticsearch', 'Listo'] },
-            filebeat: { maxTime: 60, currentTime: 0, phases: ['Configurando harvester', 'Conectando con Logstash', 'Iniciando monitoreo', 'Listo'] },
-            nginx: { maxTime: 30, currentTime: 30, phases: ['Listo'] }
-        };
-
-        let startTime = Date.now();
-
-        // Función para verificar el estado de los servicios
-        async function checkServiceStatus() {
-            const services = [
-                { name: 'elasticsearch', url: 'http://localhost:9200', element: 'elasticsearch-status' },
-                { name: 'kibana', url: 'http://localhost:5601', element: 'kibana-status' },
-                { name: 'grafana', url: 'http://localhost:3000', element: 'grafana-status' }
-            ];
-
-            for (const service of services) {
-                try {
-                    const response = await fetch(service.url, { mode: 'no-cors' });
-                    updateServiceStatus(service.name, 'online');
-                } catch (error) {
-                    // En modo no-cors, cualquier respuesta indica que el servicio está disponible
-                    updateServiceStatus(service.name, 'starting');
-                }
-            }
-        }
-
-        function updateServiceStatus(serviceName, status) {
-            const element = document.getElementById(`${serviceName}-status`);
-            const progressContainer = document.getElementById(`${serviceName}-progress-container`);
-            const timeElement = document.getElementById(`${serviceName}-time`);
-            const detailsElement = document.getElementById(`${serviceName}-details`);
+        // Actualizar estadísticas cada 30 segundos
+        function updateStats() {
+            // Simular datos en tiempo real
+            const logsCount = Math.floor(Math.random() * 100000) + 1200000;
+            const alertsCount = Math.floor(Math.random() * 10) + 20;
+            const dataIngested = (Math.random() * 10 + 40).toFixed(1);
+            const networkEvents = Math.floor(Math.random() * 50000) + 800000;
             
-            if (status === 'online') {
-                element.className = 'card-status status-online';
-                element.textContent = '🟢 En Línea';
-                progressContainer.style.display = 'none';
-                timeElement.style.display = 'none';
-                detailsElement.style.display = 'none';
-                serviceConfig[serviceName].currentTime = serviceConfig[serviceName].maxTime;
-            } else if (status === 'starting') {
-                element.className = 'card-status status-starting';
-                element.textContent = '🟡 Iniciando';
-                progressContainer.style.display = 'block';
-                timeElement.style.display = 'block';
-                detailsElement.style.display = 'block';
-            } else {
-                element.className = 'card-status status-offline';
-                element.textContent = '🔴 Offline';
-                progressContainer.style.display = 'none';
-                timeElement.style.display = 'none';
-                detailsElement.style.display = 'none';
-            }
+            document.getElementById('logs-processed').textContent = (logsCount / 1000000).toFixed(1) + 'M';
+            document.getElementById('alerts-today').textContent = alertsCount;
+            document.getElementById('data-ingested').textContent = dataIngested + 'GB';
+            document.getElementById('network-events').textContent = (networkEvents / 1000).toFixed(0) + 'K';
         }
 
-        function updateProgress() {
-            const elapsed = Math.floor((Date.now() - startTime) / 1000);
-            
-            Object.keys(serviceConfig).forEach(serviceName => {
-                const config = serviceConfig[serviceName];
-                const progressBar = document.getElementById(`${serviceName}-progress`);
-                const timeElement = document.getElementById(`${serviceName}-time`);
-                const detailsElement = document.getElementById(`${serviceName}-details`);
-                
-                if (!progressBar) return;
-                
-                // Actualizar tiempo transcurrido
-                config.currentTime = Math.min(elapsed, config.maxTime);
-                const progress = (config.currentTime / config.maxTime) * 100;
-                const remaining = Math.max(0, config.maxTime - config.currentTime);
-                
-                // Actualizar barra de progreso
-                progressBar.style.width = `${progress}%`;
-                
-                // Actualizar tiempo restante
-                if (timeElement && remaining > 0) {
-                    const minutes = Math.floor(remaining / 60);
-                    const seconds = remaining % 60;
-                    timeElement.textContent = `⏱️ Tiempo estimado: ${minutes}:${seconds.toString().padStart(2, '0')}`;
-                }
-                
-                // Actualizar fase actual
-                if (detailsElement) {
-                    const phaseIndex = Math.min(
-                        Math.floor((progress / 100) * config.phases.length),
-                        config.phases.length - 1
-                    );
-                    detailsElement.textContent = config.phases[phaseIndex];
-                }
-                
-                // Si está completo, marcar como online
-                if (progress >= 100 && serviceName !== 'elasticsearch' && serviceName !== 'nginx') {
-                    updateServiceStatus(serviceName, 'online');
-                }
-            });
-            
-            // Actualizar contadores del sistema
-            updateSystemCounters();
-        }
-
-        function updateSystemCounters() {
-            let online = 0, starting = 0, offline = 0;
-            
-            Object.keys(serviceConfig).forEach(serviceName => {
-                const statusElement = document.getElementById(`${serviceName}-status`);
-                if (statusElement) {
-                    if (statusElement.textContent.includes('En Línea')) online++;
-                    else if (statusElement.textContent.includes('Iniciando')) starting++;
-                    else offline++;
-                }
-            });
-            
-            document.getElementById('services-online').textContent = online;
-            document.getElementById('services-starting').textContent = starting;
-            document.getElementById('services-offline').textContent = offline;
-        }
-
-        function showWazuhInfo() {
-            const config = serviceConfig.wazuh;
-            const remaining = Math.max(0, config.maxTime - config.currentTime);
-            const minutes = Math.floor(remaining / 60);
-            alert(`Wazuh Manager está configurándose.\n\nTiempo estimado restante: ${minutes} minutos\nFase actual: ${config.phases[Math.floor((config.currentTime / config.maxTime) * config.phases.length)]}\n\nUna vez completado, estará disponible para monitoreo de integridad de archivos y detección de amenazas.`);
-        }
-
-        function showSuricataInfo() {
-            const config = serviceConfig.suricata;
-            const remaining = Math.max(0, config.maxTime - config.currentTime);
-            const minutes = Math.floor(remaining / 60);
-            alert(`Suricata IDS está configurándose.\n\nTiempo estimado restante: ${minutes} minutos\nFase actual: ${config.phases[Math.floor((config.currentTime / config.maxTime) * config.phases.length)]}\n\nUna vez completado, monitoreará el tráfico de red en busca de amenazas e intrusiones.`);
-        }
-
-        function showLogstashInfo() {
-            const config = serviceConfig.logstash;
-            const remaining = Math.max(0, config.maxTime - config.currentTime);
-            const minutes = Math.floor(remaining / 60);
-            alert(`Logstash está configurándose.\n\nTiempo estimado restante: ${minutes} minutos\nFase actual: ${config.phases[Math.floor((config.currentTime / config.maxTime) * config.phases.length)]}\n\nUna vez completado, procesará logs en tiempo real y los enviará a Elasticsearch.`);
-        }
-
-        function showFilebeatInfo() {
-            const config = serviceConfig.filebeat;
-            const remaining = Math.max(0, config.maxTime - config.currentTime);
-            const minutes = Math.floor(remaining / 60);
-            alert(`Filebeat está configurándose.\n\nTiempo estimado restante: ${minutes} minutos\nFase actual: ${config.phases[Math.floor((config.currentTime / config.maxTime) * config.phases.length)]}\n\nUna vez completado, recolectará logs de archivos y los enviará a Logstash.`);
-        }
-
-        // Actualizar progreso cada segundo
-        setInterval(updateProgress, 1000);
+        // Actualizar cada 30 segundos
+        setInterval(updateStats, 30000);
         
-        // Verificar estado cada 15 segundos
-        setInterval(checkServiceStatus, 15000);
+        // Actualizar al cargar la página
+        updateStats();
         
-        // Verificar estado inicial
-        checkServiceStatus();
-        updateProgress();
-
-        // Actualizar timestamp en el título
-        setInterval(() => {
+        // Mostrar hora actual
+        function updateTime() {
             const now = new Date();
-            document.title = `SIEM Dashboard - ${now.toLocaleTimeString()}`;
-        }, 1000);
+            const timeString = now.toLocaleString('es-ES');
+            document.title = `SIEM Dashboard - ${timeString}`;
+        }
+        
+        setInterval(updateTime, 1000);
+        updateTime();
     </script>
 </body>
 </html>

@@ -1,0 +1,12 @@
+-- Create Grafana database and user
+CREATE DATABASE grafana;
+CREATE USER grafana WITH ENCRYPTED PASSWORD 'SecurePostgresPass123!';
+GRANT ALL PRIVILEGES ON DATABASE grafana TO grafana;
+
+-- Grant necessary permissions
+\c grafana;
+GRANT ALL ON SCHEMA public TO grafana;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO grafana;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO grafana;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO grafana;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO grafana;

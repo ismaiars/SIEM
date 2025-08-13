@@ -48,22 +48,12 @@ elasticsearch.sniffOnConnectionFault: false
 # SECURITY CONFIGURATION
 # =============================================================================
 # Encryption keys (should be 32 characters)
-xpack.encryptedSavedObjects.encryptionKey: "${KIBANA_ENCRYPTION_KEY}"
-xpack.reporting.encryptionKey: "${KIBANA_ENCRYPTION_KEY}"
-xpack.security.encryptionKey: "${KIBANA_ENCRYPTION_KEY}"
+xpack.encryptedSavedObjects.encryptionKey: "a7a6311933d3503b89bc2dbc36572c01a6b9c9a0"
+xpack.reporting.encryptionKey: "a7a6311933d3503b89bc2dbc36572c01a6b9c9a0"
+xpack.security.encryptionKey: "a7a6311933d3503b89bc2dbc36572c01a6b9c9a0"
 
 # Security settings (DISABLED FOR DEVELOPMENT)
 xpack.security.enabled: false
-# xpack.security.audit.enabled: true
-# xpack.security.session.idleTimeout: "8h"
-# xpack.security.session.lifespan: "24h"
-
-# Login settings
-xpack.security.loginAssistanceMessage: "Welcome to SIEM PyMES - Please use your assigned credentials"
-xpack.security.authc.providers:
-  basic.basic1:
-    order: 0
-    enabled: true
 
 # =============================================================================
 # MONITORING

@@ -35,10 +35,10 @@ es_port: 9200
 # Optional URL prefix for Elasticsearch
 # es_url_prefix: elasticsearch
 
-# Connect with TLS to Elasticsearch
-use_ssl: True
+# Connect with TLS to Elasticsearch (disabled for compatibility)
+use_ssl: False
 
-# Verify TLS certificates
+# Verify TLS certificates (disabled)
 verify_certs: False
 
 # GET request with body is the default option for Elasticsearch.

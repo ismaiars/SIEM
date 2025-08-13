@@ -60,7 +60,7 @@ vars:
 # =============================================================================
 # DEFAULT RULE PATH
 # =============================================================================
-default-rule-path: /var/lib/suricata/rules
+default-rule-path: /etc/suricata/rules
 rule-files:
   - suricata.rules
   - emerging-threats.rules
@@ -448,7 +448,7 @@ logging:
   - file:
       enabled: yes
       level: info
-      filename: /var/log/suricata/suricata.log
+      filename: /etc/suricata/suricata.log
       type: json
   - syslog:
       enabled: no
@@ -464,7 +464,7 @@ outputs:
   - eve-log:
       enabled: yes
       filetype: regular
-      filename: /var/log/suricata/eve.json
+      filename: /etc/suricata/eve.json
       rotate-interval: daily
       pcap-file: false
       community-id: true

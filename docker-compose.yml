@@ -64,23 +64,16 @@ services:
   # KIBANA
   # =============================================================================
   kibana:
-    image: docker.elastic.co/kibana/kibana:${KIBANA_VERSION:-8.10.4}
+    image: docker.elastic.co/kibana/kibana:7.17.15
     container_name: siem-kibana
     hostname: kibana
     environment:
       - SERVERNAME=kibana
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-      # - ELASTICSEARCH_USERNAME=kibana_system
-      # - ELASTICSEARCH_PASSWORD=${KIBANA_PASSWORD:-SecurePass123!}
-      # - ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES=config/certs/ca/ca.crt
-      - XPACK_SECURITY_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY:-a7a6311933d3503b89bc2dbc36572c01a6b9c9a0}
-      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY:-a7a6311933d3503b89bc2dbc36572c01a6b9c9a0}
-      - XPACK_REPORTING_ENCRYPTIONKEY=${KIBANA_ENCRYPTION_KEY:-a7a6311933d3503b89bc2dbc36572c01a6b9c9a0}
+      - XPACK_SECURITY_ENABLED=false
+      - XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=a7a6311933d3503b89bc2dbc36572c01a6b9c9a0
       - SERVER_SSL_ENABLED=false
-      # - SERVER_SSL_CERTIFICATE=config/certs/kibana/kibana.crt
-      # - SERVER_SSL_KEY=config/certs/kibana/kibana.key
     volumes:
-      - ./config/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
       - ./config/elasticsearch/certs:/usr/share/kibana/config/certs:ro
       - ./elastic/kibana-dashboards:/usr/share/kibana/dashboards:ro
     ports:
@@ -92,7 +85,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -s -k https://localhost:5601/api/status || exit 1"]
+      test: ["CMD-SHELL", "curl -s http://localhost:5601/api/status || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -232,6 +225,7 @@ services:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/log:/var/log:ro
+      - ./logs-ejemplo:/usr/share/filebeat/logs-ejemplo:ro
       - filebeat_data:/usr/share/filebeat/data
     command: filebeat -e -strict.perms=false
     networks:
@@ -350,6 +344,59 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
+
+  # =============================================================================
+  # PROMETHEUS (Metrics Collection)
+  # =============================================================================
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_VERSION:-v2.47.0}
+    container_name: siem-prometheus
+    hostname: prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=${PROMETHEUS_RETENTION_TIME:-15d}'
+      - '--storage.tsdb.retention.size=${PROMETHEUS_RETENTION_SIZE:-10GB}'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/prometheus/alerts:/etc/prometheus/alerts:ro
+      - ./config/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - siem-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Node Exporter for system metrics
+  node-exporter:
+    image: prom/node-exporter:${NODE_EXPORTER_VERSION:-v1.6.1}
+    container_name: siem-node-exporter
+    hostname: node-exporter
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    ports:
+      - "9100:9100"
+    networks:
+      - siem-network
+    restart: unless-stopped
 
   # =============================================================================
   # ELASTALERT (Alerting Engine)
@@ -507,3 +554,11 @@ volumes:
       type: none
       o: bind
       device: ./data/nginx/logs
+  
+  # Prometheus
+  prometheus_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/prometheus
